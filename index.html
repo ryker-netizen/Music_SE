@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>/// SYNDICATE // REAL_VOLUMETRIC_RAVE ///</title>
+    <title>/// SYNDICATE // LIVE_STAGE_VEER ///</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
@@ -98,7 +98,7 @@
             padding: 8px 12px; font-family: inherit; font-size: 11px;
             text-transform: uppercase; cursor: pointer; transition: all 0.2s;
         }
-        .cyber-btn:hover, .cyber-btn.active {
+        .cyber-btn:hover {
             background: #0f0; color: #000; border-color: #0f0; box-shadow: 0 0 15px #0f0; font-weight: bold;
         }
         .cyber-btn:disabled { color: #555; cursor: not-allowed; border-color: #222; }
@@ -114,13 +114,13 @@
 
     <div class="interface-grid">
         <header>
-            <div class="glitch-title">SYNDICATE // VOLUMETRIC</div>
+            <div class="glitch-title">SYNDICATE // VEER_STAGE</div>
             <div class="system-status" id="track-name">AWAITING_SIGNAL...</div>
         </header>
 
         <div class="mid-deck">
             <div class="eq-panel">
-                <div style="font-size: 12px; font-weight: bold; margin-bottom: 5px; color:#fff">STAGE_EQ</div>
+                <div style="font-size: 12px; font-weight: bold; margin-bottom: 5px; color:#fff">FREQ_CONTROL</div>
                 <div class="eq-label"><span>HIGH</span> <span id="val-hi">0dB</span></div>
                 <input type="range" class="eq-slider" id="eq-high" min="-20" max="20" value="0">
                 <div class="eq-label"><span>MID</span> <span id="val-mid">0dB</span></div>
@@ -131,7 +131,8 @@
 
             <div class="terminal-container">
                 <div class="terminal-logs" id="term-logs">
-                    <div class="term-line sys">>>> SYSTEM ONLINE. FORCING VOLUMETRIC MODE.</div>
+                    <div class="term-line sys">>>> RAVE ENGINE ACTIVATED.</div>
+                    <div class="term-line sys">>>> FREQUENCY LINK SYNCED.</div>
                 </div>
             </div>
         </div>
@@ -151,11 +152,6 @@
                     <button id="btn-pause" class="cyber-btn" disabled>PAUSE</button>
                     <button id="btn-stop" class="cyber-btn" disabled>STOP</button>
                 </div>
-                <div class="controls-group" id="mode-selectors">
-                    <button class="cyber-btn mode-btn active" data-mode="0">INTELLIGENT_SHOW</button>
-                    <button class="cyber-btn mode-btn" data-mode="1">ARENA_SWEEP</button>
-                    <button class="cyber-btn mode-btn" data-mode="2">CHAOS_STROBE</button>
-                </div>
             </div>
         </div>
     </div>
@@ -173,11 +169,9 @@
         const trackProgress = document.getElementById('track-progress');
         const termLogs = document.getElementById('term-logs');
 
-        let audioContext, analyser, source;
+        let audioContext, analyser, source, dataArray, bufferLength;
         let filterLow, filterMid, filterHigh;
-        let dataArray, bufferLength;
         let isPlaying = false;
-        let currentMode = 0;
         let animationId;
         let maxLength = 2000;
 
@@ -214,13 +208,13 @@
             
             source = audioContext.createMediaElementSource(audioPlayer);
             
-            filterLow = audioContext.createBiquadFilter(); filterLow.type = 'lowshelf'; filterLow.frequency.value = 180;
-            filterMid = audioContext.createBiquadFilter(); filterMid.type = 'peaking'; filterMid.frequency.value = 1200; filterMid.Q.value = 1;
-            filterHigh = audioContext.createBiquadFilter(); filterHigh.type = 'highshelf'; filterHigh.frequency.value = 6000;
+            filterLow = audioContext.createBiquadFilter(); filterLow.type = 'lowshelf'; filterLow.frequency.value = 150;
+            filterMid = audioContext.createBiquadFilter(); filterMid.type = 'peaking'; filterMid.frequency.value = 1000; filterMid.Q.value = 1;
+            filterHigh = audioContext.createBiquadFilter(); filterHigh.type = 'highshelf'; filterHigh.frequency.value = 5000;
 
             source.connect(filterLow); filterLow.connect(filterMid); filterMid.connect(filterHigh);
             filterHigh.connect(analyser); analyser.connect(audioContext.destination);
-            tLog('VOLUMETRIC ENGINE INJECTED.', 'sys');
+            tLog('STAGE AUDIO LINK: ESTABLISHED.', 'sys');
         }
 
         document.getElementById('audio-upload').addEventListener('change', function() {
@@ -229,7 +223,7 @@
                 audioPlayer.src = URL.createObjectURL(file);
                 document.getElementById('track-name').innerText = file.name;
                 btnPlay.disabled = false; btnPause.disabled = false; btnStop.disabled = false;
-                tLog(`LOADED: ${file.name}`);
+                tLog(`TRACK READY: ${file.name}`);
             }
         });
 
@@ -256,141 +250,100 @@
         document.getElementById('eq-mid').addEventListener('input', (e) => { if(filterMid) filterMid.gain.value = e.target.value; document.getElementById('val-mid').innerText = `${e.target.value}dB`; });
         document.getElementById('eq-high').addEventListener('input', (e) => { if(filterHigh) filterHigh.gain.value = e.target.value; document.getElementById('val-hi').innerText = `${e.target.value}dB`; });
 
-        class DynamicTrack {
-            constructor(sensitivity = 1.05) {
-                this.avg = 100;
-                this.sensitivity = sensitivity;
-            }
-            isBeat(val) {
-                this.avg = this.avg * 0.96 + val * 0.04;
-                return val > this.avg * this.sensitivity && val > 45;
-            }
-        }
-
-        const lowTrack = new DynamicTrack(1.04);
-        const midTrack = new DynamicTrack(1.03);
-        const highTrack = new DynamicTrack(1.06);
-
-        // --- ОБЪЕМНЫЙ ЛАЗЕРНЫЙ СТОЛБ С ИНЕРЦИЕЙ ---
-        class VolumetricLaser {
-            constructor(x, y, isLeft, role, index) {
+        // --- УПРАВЛЕНИЕ ЖИВЫМ СЦЕНИЧЕСКИМ ВЕЕРОМ ---
+        class StageVeerProjector {
+            constructor(x, y, baseAngle, role, color) {
                 this.x = x;
                 this.y = y;
-                this.isLeft = isLeft;
-                this.role = role;
-                this.index = index;
+                this.baseAngle = baseAngle; // Центральное направление пушки
+                this.role = role; 
+                this.color = color;
 
-                this.angle = isLeft ? Math.PI/4 : (Math.PI*3)/4;
-                this.targetAngle = this.angle;
+                this.currentCenterAngle = baseAngle;
+                this.targetCenterAngle = baseAngle;
                 
-                // Скорость движения индивидуальна для каждой пушки
-                this.angularVelocity = 0;
-                this.inertia = 0.82 + (index % 3) * 0.04; 
-
-                this.intensity = 0.2;
-                this.targetIntensity = 0.2;
-
-                if (role === 'LOW') this.color = '255, 0, 85';      // Неоновый пурпур/розовый
-                else if (role === 'MID') this.color = '0, 240, 255'; // Плотный циан
-                else this.color = '0, 255, 100';                    // Кислотно-зеленый
+                this.spread = 0;       // Текущая ширина раскрытия веера
+                this.targetSpread = 0; // Целевая ширина раскрытия веера
+                
+                this.intensity = 0;
+                this.maxRays = 12;      // Количество лучей в одной пушке
             }
 
-            update(freqs, isLow, isMid, isHigh) {
-                // Плавное следование за таргетом через физику углового ускорения
-                let accel = (this.targetAngle - this.angle) * 0.15;
-                this.angularVelocity = this.angularVelocity * this.inertia + accel;
-                this.angle += this.angularVelocity;
+            update(freqs) {
+                // Вытаскиваем чистую энергию под каждую роль
+                let energy = 0;
+                if (this.role === 'LOW') energy = freqs.low;
+                else if (this.role === 'MID') energy = freqs.mid;
+                else if (this.role === 'HIGH') energy = freqs.high;
 
-                // Медленный живой дрейф сцены в покое
-                this.targetAngle += Math.sin(Date.now() / (800 + this.index * 100)) * 0.0015;
+                // КРИТИЧЕСКИЙ ХАК НА ПАУЗЫ И КАЖДОЕ СЛОВО:
+                // Если частота пустая (тишина/пауза) — мгновенно схлопываем веер в ноль и тушим!
+                if (energy < 40) {
+                    this.targetSpread = 0.01;
+                    this.intensity += (0 - this.intensity) * 0.4; // Мгновенное затухание
+                    this.targetCenterAngle = this.baseAngle;
+                } else {
+                    // Музыка идет: рассчитываем параметры от реальной громкости
+                    this.intensity += ((energy / 255) - this.intensity) * 0.3;
+                    
+                    // Ширина раскрытия веера напрямую зависит от напора частоты!
+                    this.targetSpread = (energy / 255) * (Math.PI * 0.4); 
 
-                // Реакция на частоты
-                if (this.role === 'LOW') {
-                    if (isLow) {
-                        this.targetIntensity = 1.0;
-                        this.targetAngle = this.isLeft ? (Math.random() * 0.9) : (Math.PI - Math.random() * 0.9);
-                    } else {
-                        this.targetIntensity -= 0.02;
-                    }
-                } 
-                else if (this.role === 'MID') {
-                    if (isMid) {
-                        this.targetIntensity = 0.85;
-                        this.targetAngle = 0.1 + Math.random() * (Math.PI - 0.2);
-                    } else {
-                        this.targetIntensity -= 0.03;
-                    }
-                } 
-                else if (this.role === 'HIGH') {
-                    if (isHigh) {
-                        this.targetIntensity = 1.0;
-                        this.targetAngle = Math.random() * Math.PI;
-                        if (currentMode === 2) this.angle = this.targetAngle; 
-                    } else {
-                        this.targetIntensity -= 0.07;
+                    // Движение центральной оси веера (Ви-джей крутит ручку от баса и мида)
+                    if (this.role === 'LOW' && freqs.low > 140) {
+                        this.targetCenterAngle = this.baseAngle + (Math.random() - 0.5) * 0.6;
+                    } else if (this.role === 'MID') {
+                        // Средние частоты (вокал) плавно качают веер туда-сюда
+                        this.targetCenterAngle = this.baseAngle + Math.sin(Date.now() / 400) * 0.4;
+                    } else if (this.role === 'HIGH' && freqs.high > 120) {
+                        // Высокие частоты заставляют веер резко дергаться
+                        this.targetCenterAngle = this.baseAngle + (Math.random() - 0.5) * 0.8;
                     }
                 }
 
-                if (this.targetIntensity < 0.25) this.targetIntensity = 0.25;
-                this.intensity += (this.targetIntensity - this.intensity) * 0.2;
+                // Плавное сглаживание углов и раскрытия (инерция сервоприводов)
+                this.currentCenterAngle += (this.targetCenterAngle - this.currentCenterAngle) * 0.15;
+                this.spread += (this.targetSpread - this.spread) * 0.2;
             }
 
-            draw(ctx, maxLength, freqs) {
-                ctx.save();
-                
-                // Конечные координаты центральной оси луча
-                const endX = this.x + Math.cos(this.angle) * maxLength;
-                const endY = this.y - Math.sin(this.angle) * maxLength;
+            draw(ctx, maxLength) {
+                if (this.intensity < 0.05) return;
 
-                // Расчет толщины конуса от энергии трека
-                let energy = this.role === 'LOW' ? freqs.low : (this.role === 'HIGH' ? freqs.high : freqs.mid);
-                let beamWidth = (4 + (energy / 255) * 12) * this.intensity;
+                // Отрисовка веера из БАЗОВОЙ ОДНОЙ ТОЧКИ (Разветвление)
+                for (let i = 0; i < this.maxRays; i++) {
+                    // Распределяем лучи внутри угла раскрытия веера
+                    let angleOffset = 0;
+                    if (this.maxRays > 1) {
+                        angleOffset = (i / (this.maxRays - 1) - 0.5) * this.spread;
+                    }
+                    
+                    let finalAngle = this.currentCenterAngle + angleOffset;
 
-                // Перпендикулярные смещения для отрисовки геометрии конуса (лазер расширяется к концу)
-                const perpAngle = this.angle + Math.PI / 2;
-                const startSpread = beamWidth * 0.2; // У основания пушки луч тонкий
-                const endSpread = beamWidth * 3.5;  // Вдали луч рассеивается в конус!
+                    const endX = this.x + Math.cos(finalAngle) * maxLength;
+                    const endY = this.y - Math.sin(finalAngle) * maxLength;
 
-                const startLeftX = this.x + Math.cos(perpAngle) * startSpread;
-                const startLeftY = this.y - Math.sin(perpAngle) * startSpread;
-                const startRightX = this.x - Math.cos(perpAngle) * startSpread;
-                const startRightY = this.y - Math.sin(perpAngle) * startSpread;
+                    ctx.save();
+                    
+                    // Эффект объемного дыма и свечения вокруг каждого луча
+                    ctx.shadowBlur = 12 * this.intensity;
+                    ctx.shadowColor = `rgba(${this.color}, ${this.intensity})`;
 
-                const endLeftX = endX + Math.cos(perpAngle) * endSpread;
-                const endLeftY = endY - Math.sin(perpAngle) * endSpread;
-                const endRightX = endX - Math.cos(perpAngle) * endSpread;
-                const endRightY = endY - Math.sin(perpAngle) * endSpread;
+                    // 1. Внешний лазерный туман
+                    ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
+                    ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.25})`;
+                    ctx.lineWidth = 6 * this.intensity; ctx.stroke();
 
-                // ЭФФЕКТ КЛУБНОГО СВЕЧЕНИЯ И СЛОИСТОГО ТУМАНА (Реальный Glow)
-                ctx.shadowBlur = beamWidth * 2.5;
-                ctx.shadowColor = `rgba(${this.color}, ${this.intensity})`;
+                    // 2. Плотное ядро луча
+                    ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.75})`;
+                    ctx.lineWidth = 2.5 * this.intensity; ctx.stroke();
 
-                // Слоистый объемный конус света
-                let gradient = ctx.createLinearGradient(this.x, this.y, endX, endY);
-                gradient.addColorStop(0, `rgba(${this.color}, ${this.intensity * 0.9})`);
-                gradient.addColorStop(0.3, `rgba(${this.color}, ${this.intensity * 0.4})`);
-                gradient.addColorStop(1, `rgba(${this.color}, 0)`);
+                    // 3. Белая вспышка внутри (Plasma Core)
+                    ctx.shadowBlur = 2; ctx.shadowColor = '#fff';
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.95})`;
+                    ctx.lineWidth = 0.6 * this.intensity; ctx.stroke();
 
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.moveTo(startLeftX, startLeftY);
-                ctx.lineTo(endLeftX, endLeftY);
-                ctx.lineTo(endRightX, endRightY);
-                ctx.lineTo(startRightX, startRightY);
-                ctx.closePath();
-                ctx.fill();
-
-                // Яркое белое ядро внутри лазера (Plasma Core)
-                ctx.shadowBlur = 5;
-                ctx.shadowColor = '#fff';
-                ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.95})`;
-                ctx.lineWidth = Math.max(0.5, beamWidth * 0.15);
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(endX, endY);
-                ctx.stroke();
-
-                ctx.restore();
+                    ctx.restore();
+                }
             }
         }
 
@@ -400,24 +353,16 @@
             const w = window.innerWidth;
             const h = window.innerHeight;
             
-            // Базовая плотная сцена из 12 мощных объемных установок
-            // НИЗ (Тяжелый бас и ритм-секция)
-            projectors.push(new VolumetricLaser(w * 0.2, h + 15, true, 'LOW', 0));
-            projectors.push(new VolumetricLaser(w * 0.4, h + 15, true, 'LOW', 1));
-            projectors.push(new VolumetricLaser(w * 0.6, h + 15, false, 'LOW', 2));
-            projectors.push(new VolumetricLaser(w * 0.8, h + 15, false, 'LOW', 3));
-
-            // СТЕНЫ И ПРОСТРЕЛЫ (Середина / Мелодия)
-            projectors.push(new VolumetricLaser(-15, h * 0.3, true, 'MID', 4));
-            projectors.push(new VolumetricLaser(-15, h * 0.7, true, 'MID', 5));
-            projectors.push(new VolumetricLaser(w + 15, h * 0.3, false, 'MID', 6));
-            projectors.push(new VolumetricLaser(w + 15, h * 0.7, false, 'MID', 7));
-
-                        // ПОТОЛОК И ВЕРХНИЙ СТРОБОСКОП (Высокие частоты)
-            projectors.push(new VolumetricLaser(w * 0.25, -15, true, 'HIGH', 8));
-            projectors.push(new VolumetricLaser(w * 0.75, -15, false, 'HIGH', 9));
-            projectors.push(new VolumetricLaser(-15, h * 0.1, true, 'HIGH', 10));
-            projectors.push(new VolumetricLaser(w + 15, h * 0.1, false, 'HIGH', 11));
+            // ЖЕСТКАЯ ГЕОМЕТРИЯ КЛУБА — 4 МОЩНЫХ ИСТОЧНИКА ВЕЕРОВ:
+            // 1. Левый нижний басовый веер (LOW)
+            projectors.push(new StageVeerProjector(w * 0.1, h + 10, Math.PI / 4, 'LOW', '255, 0, 85'));
+            // 2. Правый нижний басовый веер (LOW)
+            projectors.push(new StageVeerProjector(w * 0.9, h + 10, (Math.PI * 3) / 4, 'LOW', '255, 0, 85'));
+            
+            // 3. Левый верхний веер вокала/мелодии (MID)
+            projectors.push(new StageVeerProjector(-10, h * 0.2, -Math.PI / 6, 'MID', '0, 230, 255'));
+            // 4. Правый верхний веер высоких частот/кликов (HIGH)
+            projectors.push(new StageVeerProjector(w + 10, h * 0.2, (Math.PI * 7) / 6, 'HIGH', '0, 255, 120'));
         }
 
         resize();
@@ -430,31 +375,29 @@
 
             let freqs = { low: 0, mid: 0, high: 0 };
 
-            for(let i = 0; i < 8; i++) freqs.low += dataArray[i];
-            freqs.low /= 8;
+            // Собираем частоты без шума
+            for(let i = 0; i < 6; i++) freqs.low += dataArray[i];
+            freqs.low /= 6;
 
-            for(let i = 10; i < 50; i++) freqs.mid += dataArray[i];
-            freqs.mid /= 40;
+            for(let i = 12; i < 45; i++) freqs.mid += dataArray[i];
+            freqs.mid /= 33;
 
             for(let i = 50; i < 110; i++) freqs.high += dataArray[i];
             freqs.high /= 60;
 
-            const isLow = lowTrack.isBeat(freqs.low);
-            const isMid = midTrack.isBeat(freqs.mid);
-            const isHigh = highTrack.isBeat(freqs.high);
-
-            // КЛЮЧЕВОЙ ХАК: Более плотное затирание кадра для эффекта шлейфа дыма
+            // Стирание кадра со световым клубным шлейфом
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'; 
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.16)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             ctx.globalCompositeOperation = 'screen';
 
+            // Обновляем пушки
             projectors.forEach(proj => {
-                proj.update(freqs, isLow, isMid, isHigh);
-                proj.draw(ctx, maxLength, freqs);
+                proj.update(freqs);
+                proj.draw(ctx, maxLength);
             });
         }
     </script>
 </body>
-</html> 
+</html>
