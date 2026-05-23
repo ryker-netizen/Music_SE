@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>/// SYNDICATE // FREQ_SPLIT_LASERS_PRO ///</title>
+    <title>/// SYNDICATE // HYPER_RAVE_V3_PRO ///</title>
     <style>
         /* --- CORE & ESTHETICS --- */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
@@ -138,7 +138,7 @@
     <div class="interface-grid">
         
         <header>
-            <div class="glitch-title">SYNDICATE // FREQ_PRO</div>
+            <div class="glitch-title">SYNDICATE // ADAPTIVE_V3</div>
             <div class="system-status" id="track-name">AWAITING_SIGNAL...</div>
         </header>
 
@@ -155,8 +155,8 @@
 
             <div class="terminal-container">
                 <div class="terminal-logs" id="term-logs">
-                    <div class="term-line sys">>>> STAGE CONTROLLER ONLINE.</div>
-                    <div class="term-line sys">>>> FREQUENCY CHANNELS LOADED.</div>
+                    <div class="term-line sys">>>> ADAPTIVE ENGINE V3 RE-ENGINEERED.</div>
+                    <div class="term-line sys">>>> DYNAMIC LASER ARRAY: 18 CHANNELS READY.</div>
                 </div>
             </div>
         </div>
@@ -234,20 +234,20 @@
             if (audioContext) return;
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 512; // Увеличили разрешение до 512 для четкого деления полос
+            analyser.fftSize = 512; 
             bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
             
             source = audioContext.createMediaElementSource(audioPlayer);
             
-            filterLow = audioContext.createBiquadFilter(); filterLow.type = 'lowshelf'; filterLow.frequency.value = 250;
+            filterLow = audioContext.createBiquadFilter(); filterLow.type = 'lowshelf'; filterLow.frequency.value = 200;
             filterMid = audioContext.createBiquadFilter(); filterMid.type = 'peaking'; filterMid.frequency.value = 1000; filterMid.Q.value = 1;
-            filterHigh = audioContext.createBiquadFilter(); filterHigh.type = 'highshelf'; filterHigh.frequency.value = 4000;
+            filterHigh = audioContext.createBiquadFilter(); filterHigh.type = 'highshelf'; filterHigh.frequency.value = 5000;
 
             source.connect(filterLow); filterLow.connect(filterMid); filterMid.connect(filterHigh);
             filterHigh.connect(analyser); analyser.connect(audioContext.destination);
 
-            tLog('PRO AUDIO PIPELINE ACTIVE.', 'sys');
+            tLog('HYPER ENGINE ONLINE. ADAPTIVE PROCESSING ACTIVE.', 'sys');
         }
 
         document.getElementById('audio-upload').addEventListener('change', function() {
@@ -299,154 +299,162 @@
                 document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 currentMode = parseInt(e.target.dataset.mode);
-                tLog(`ROUTING CHANGED. LIGHTS PATTERN: [${currentMode}]`, 'sys');
+                tLog(`ROUTING CHANGED. ENGINE PATTERN: [${currentMode}]`, 'sys');
             });
         });
 
-        // --- ИНТЕЛЛЕКТУАЛЬНЫЙ СВЕТОВОЙ ПРОЦЕССОР (PRO ЧАСТОТЫ) ---
-
-        // Автономные детекторы битов для разных частотных каналов
-        class BeatDetector {
-            constructor(cutoffMin, ratio) {
+        // --- УМНЫЙ ДИНАМИЧЕСКИЙ ДЕТЕКТОР БИТА С АВТОПОДСТРОЙКОЙ ---
+        class AdaptiveDetector {
+            constructor(ratio = 1.12) {
                 this.history = [];
-                this.cutoff = cutoffMin;
-                this.cutoffMin = cutoffMin;
+                this.localMax = 50;
                 this.ratio = ratio;
+                this.decay = 0.98;
             }
             check(currentVal) {
                 this.history.push(currentVal);
-                if (this.history.length > 20) this.history.shift();
-                let avg = this.history.reduce((a,b) => a+b, 0) / this.history.length;
+                if (this.history.length > 25) this.history.shift();
                 
-                if (currentVal > this.cutoff && currentVal > avg * this.ratio) {
-                    this.cutoff = currentVal * 1.12;
+                let avg = this.history.reduce((a, b) => a + b, 0) / this.history.length;
+                
+                // Следим за пиками, чтобы подстроиться под грязный фонк/рэп автоматически
+                if (currentVal > this.localMax) this.localMax = currentVal;
+                else this.localMax *= this.decay;
+                if (this.localMax < 50) this.localMax = 50;
+
+                // Порог теперь "живой" — он зависит от средней громкости трека прямо сейчас
+                let adaptiveCutoff = avg * this.ratio;
+                if (adaptiveCutoff < 40) adaptiveCutoff = 40; 
+
+                if (currentVal > adaptiveCutoff && currentVal > 50) {
                     return true;
-                } else {
-                    this.cutoff *= 0.95;
-                    if (this.cutoff < this.cutoffMin) this.cutoff = this.cutoffMin;
-                    return false;
                 }
+                return false;
             }
         }
 
-        const lowDetector = new BeatDetector(140, 1.15);
-        const midDetector = new BeatDetector(110, 1.12);
-        const highDetector = new BeatDetector(90, 1.15);
+        const lowDetector = new AdaptiveDetector(1.1); // Сверхчувствительный для бочки
+        const midDetector = new AdaptiveDetector(1.08); // Для основного ритма
+        const highDetector = new AdaptiveDetector(1.12); // Для резких хэтов
 
         class LaserProjector {
-            // РОЛЬ: 'LOW' (бас), 'MID' (средние), 'HIGH' (высокие)
-            constructor(x, y, isLeft, role) {
+            constructor(x, y, isLeft, role, isReserve = false) {
                 this.x = x;
                 this.y = y;
                 this.isLeft = isLeft;
                 this.role = role; 
+                this.isReserve = isReserve; // Спит ли пушка до жесткого дропа
                 
-                // Начальное позиционирование в зависимости от роли
                 if (role === 'LOW') {
-                    this.angle = isLeft ? Math.PI / 6 : (Math.PI * 5) / 6;
-                    this.color = '255, 0, 85'; // Басовые пушки — ядерный неоново-розовый
-                } else if (role === 'MID') {
                     this.angle = isLeft ? Math.PI / 4 : (Math.PI * 3) / 4;
-                    this.color = '0, 255, 255'; // Средние частоты — ярко-циановый
-                } else {
+                    this.color = '255, 0, 85'; 
+                } else if (role === 'MID') {
                     this.angle = isLeft ? Math.PI / 3 : (Math.PI * 2) / 3;
-                    this.color = '0, 255, 0'; // Высокие — ядовито-зеленый
+                    this.color = '0, 255, 255'; 
+                } else {
+                    this.angle = isLeft ? Math.PI / 6 : (Math.PI * 5) / 6;
+                    this.color = '0, 255, 0'; 
                 }
                 
                 this.targetAngle = this.angle;
-                this.intensity = 0.2;
+                this.intensity = 0;
+                this.active = !isReserve; // Резервные изначально выключены
             }
 
-            update(frequencies) {
-                // Плавная доводка углов
-                this.angle += (this.targetAngle - this.angle) * 0.12;
+            update(frequencies, isLowBeat, isMidBeat, isHighBeat) {
+                // Скорость доводки зависит от энергии трека (чем громче, тем резче летают лазеры!)
+                let speedFactor = 0.08 + (frequencies.total / 255) * 0.12;
+                this.angle += (this.targetAngle - this.angle) * speedFactor;
 
-                // Медленное фоновое покачивание в режиме ожидания (Idle)
-                this.targetAngle += (Math.sin(Date.now() / 1200 + this.x) * 0.002);
+                // Базовое покачивание
+                this.targetAngle += (Math.sin(Date.now() / 1000 + this.x) * 0.001);
 
-                // Отработка ролей в зависимости от частот
+                // Если это резервная пушка, она включается только на мощной энергии трека
+                if (this.isReserve) {
+                    let triggerFreq = this.role === 'LOW' ? frequencies.low : (this.role === 'HIGH' ? frequencies.high : frequencies.mid);
+                    if (triggerFreq > 160) {
+                        this.active = true;
+                    } else if (triggerFreq < 100) {
+                        this.active = false;
+                        this.intensity *= 0.9;
+                        return;
+                    }
+                }
+
+                if (!this.active) return;
+
                 if (this.role === 'LOW') {
-                    const isLowBeat = lowDetector.check(frequencies.low);
                     if (isLowBeat) {
-                        this.intensity = 1.0; // Максимальная вспышка от бочки
+                        this.intensity = 1.0;
+                        // Размах углов зависит от силы баса
+                        let sweep = (frequencies.low / 255) * Math.PI;
+                        this.targetAngle = this.isLeft ? (Math.random() * sweep * 0.5) : (Math.PI - Math.random() * sweep * 0.5);
                         
-                        if (currentMode === 0 || currentMode === 1) {
-                            // Басовые пушки бьют строго веером крест-накрест
-                            this.targetAngle = this.isLeft ? (Math.random() * 0.4) : (Math.PI - Math.random() * 0.4);
-                        } else if (currentMode === 2) {
-                            this.targetAngle = Math.random() * Math.PI;
-                            this.angle = this.targetAngle;
-                        }
-                        
-                        // Меняем цвет баса на желтый/красный при перегрузе
-                        if (frequencies.low > 220) this.color = '255, 255, 0';
+                        // Цветовая палитра баса на пиках
+                        if (frequencies.low > 200) this.color = '255, 128, 0'; // Оранжевый взрыв
                         else this.color = '255, 0, 85';
                     } else {
-                        this.intensity -= 0.03; // Бас затухает плавно, создавая массу
+                        this.intensity -= 0.02; // Медленное затухание для плотности картинки
                     }
                 } 
                 
                 else if (this.role === 'MID') {
-                    const isMidBeat = midDetector.check(frequencies.mid);
-                    // Средние частоты реагируют на вокал и гитары — они постоянно сканируют пространство
                     if (isMidBeat) {
                         this.intensity = 0.85;
-                        const baseAngle = this.isLeft ? Math.PI/6 : Math.PI*0.5;
-                        this.targetAngle = baseAngle + (Math.random() * Math.PI / 3);
-                        
-                        if (Math.random() > 0.7) this.color = '255, 0, 255'; // Пурпурный бафф
+                        // Широкий веер для средних частот
+                        this.targetAngle = Math.random() * Math.PI;
+                        if (Math.random() > 0.6) this.color = '170, 0, 255'; // Пурпур
                         else this.color = '0, 255, 255';
                     } else {
-                        // Движение средних частот зависит от громкости мелодии
-                        this.targetAngle += (Math.cos(Date.now() / 500) * (frequencies.mid / 255) * 0.01);
-                        this.intensity -= 0.04;
+                        // Постоянное микро-движение от звуковой волны
+                        this.targetAngle += (Math.cos(Date.now() / 300) * (frequencies.mid / 255) * 0.02);
+                        this.intensity -= 0.03;
                     }
                 } 
                 
                 else if (this.role === 'HIGH') {
-                    const isHighBeat = highDetector.check(frequencies.high);
-                    // Высокие частоты (хай-хэты, клики) — работают как резкий стробоскоп
                     if (isHighBeat) {
                         this.intensity = 1.0;
-                        // Мгновенный хаотичный выстрел в случайную точку
                         this.targetAngle = Math.random() * Math.PI;
-                        if (currentMode === 2) this.angle = this.targetAngle; 
-                        
-                        this.color = Math.random() > 0.5 ? '0, 255, 0' : '255, 255, 255'; // Зеленый или чистый белый свет
+                        if (currentMode === 2) this.angle = this.targetAngle; // Жесткий стробоскопический срыв
+                        this.color = Math.random() > 0.4 ? '0, 255, 0' : '255, 255, 255';
                     } else {
-                        this.intensity -= 0.12; // Высокие тухнут СВЕРХБЫСТРО, как вспышки стробоскопа!
+                        this.intensity -= 0.08; // Мгновенно тухнут, создавая эффект вспышки
                     }
                 }
 
-                // Ограничитель минимальной яркости, чтобы лучи не исчезали совсем
-                if (this.intensity < 0.15) this.intensity = 0.15;
+                // Увеличили минимальную яркость, чтобы сцена не казалась пустой и голой!
+                if (this.intensity < 0.22) this.intensity = 0.22;
             }
 
-            draw(ctx, maxLength) {
-                if (this.intensity <= 0.01) return;
+            draw(ctx, maxLength, frequencies) {
+                if (!this.active || this.intensity <= 0.01) return;
 
                 const endX = this.x + Math.cos(this.angle) * maxLength;
                 const endY = this.y - Math.sin(this.angle) * maxLength;
 
-                // Отрисовка луча с адаптивной толщиной (Бас — толстый, Высокие — тонкие иглы)
-                let baseWidth = 4;
-                if (this.role === 'LOW') baseWidth = 8;
-                if (this.role === 'HIGH') baseWidth = 2;
+                // Толщина лучей динамически зависит от громкости частот! Качает музыка — жирнеют лучи!
+                let currentFreq = this.role === 'LOW' ? frequencies.low : (this.role === 'HIGH' ? frequencies.high : frequencies.mid);
+                let thicknessMultiplier = 0.5 + (currentFreq / 255) * 2.0;
 
-                // 1. Внешнее гало
-                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.15})`;
-                ctx.lineWidth = baseWidth * 4; ctx.stroke();
+                let baseWidth = 3 * thicknessMultiplier;
+                if (this.role === 'LOW') baseWidth = 6 * thicknessMultiplier;
+                if (this.role === 'HIGH') baseWidth = 1.5 * thicknessMultiplier;
 
-                // 2. Сердцевина луча
+                // 1. Внешний неоновый шлейф
                 ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.6})`;
+                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.12})`;
+                ctx.lineWidth = baseWidth * 4.5; ctx.stroke();
+
+                // 2. Основное тело лазера
+                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
+                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.65})`;
                 ctx.lineWidth = baseWidth; ctx.stroke();
 
-                // 3. Белый стержень лазера
+                // 3. Белая плазменная нить внутри
                 ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.9})`;
-                ctx.lineWidth = baseWidth * 0.25; ctx.stroke();
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.95})`;
+                ctx.lineWidth = baseWidth * 0.2; ctx.stroke();
             }
         }
 
@@ -456,21 +464,36 @@
             const w = window.innerWidth;
             const h = window.innerHeight;
             
-            // ЖЕСТКОЕ РАСПРЕДЕЛЕНИЕ СЦЕНИЧЕСКИХ ПОЗИЦИЙ И ЧАСТОТНЫХ РОЛЕЙ:
+            // --- БАТАРЕЯ ИЗ 18 ЛАЗЕРНЫХ УСТАНОВОК (РАСПРЕДЕЛЕНИЕ ПО ВСЕЙ СЦЕНЕ) ---
             
-            // 1. БАСОВЫЙ ЦЕХ (LOW) — Находятся строго по центру снизу, бьют мощным неоновым веером вверх
-            projectors.push(new LaserProjector(w * 0.45, h + 10, true, 'LOW'));
-            projectors.push(new LaserProjector(w * 0.55, h + 10, false, 'LOW'));
+            // Основная группа (работают всегда)
+            // LOW (Нижний басовый центр)
+            projectors.push(new LaserProjector(w * 0.35, h + 10, true, 'LOW'));
+            projectors.push(new LaserProjector(w * 0.5, h + 10, true, 'LOW'));
+            projectors.push(new LaserProjector(w * 0.65, h + 10, false, 'LOW'));
 
-            // 2. МЕЛОДИЧЕСКИЙ ЦЕХ (MID) — По углам снизу, сканируют весь экран крест-накрест
-            projectors.push(new LaserProjector(w * 0.1, h + 10, true, 'MID'));
-            projectors.push(new LaserProjector(w * 0.9, h + 10, false, 'MID'));
+            // MID (Нижние углы и бока)
+            projectors.push(new LaserProjector(w * 0.15, h + 10, true, 'MID'));
+            projectors.push(new LaserProjector(w * 0.85, h + 10, false, 'MID'));
+            projectors.push(new LaserProjector(-10, h * 0.5, true, 'MID'));
+            projectors.push(new LaserProjector(w + 10, h * 0.5, false, 'MID'));
 
-            // 3. СТРОБОСКОПИЧЕСКИЙ ЦЕХ (HIGH) — Боковые прострелы сверху и снизу, выдают резкие вспышки-иглы
-            projectors.push(new LaserProjector(-10, h * 0.2, true, 'HIGH'));
-            projectors.push(new LaserProjector(w + 10, h * 0.2, false, 'HIGH'));
-            projectors.push(new LaserProjector(-10, h * 0.7, true, 'HIGH'));
-            projectors.push(new LaserProjector(w + 10, h * 0.7, false, 'HIGH'));
+            // HIGH (Верхние углы и боковые прострелы)
+            projectors.push(new LaserProjector(-10, h * 0.15, true, 'HIGH'));
+            projectors.push(new LaserProjector(w + 10, h * 0.15, false, 'HIGH'));
+            projectors.push(new LaserProjector(-10, h * 0.8, true, 'HIGH'));
+            projectors.push(new LaserProjector(w + 10, h * 0.8, false, 'HIGH'));
+            projectors.push(new LaserProjector(w * 0.5, -10, true, 'HIGH')); // Потолочный пулемет
+
+            // --- УДАРНАЯ ГРУППА РЕЗЕРВА (ВЫЛЕЗАЮТ ПО МЕРЕ НАРАСТАНИЯ МЕЛОДИИ НА ДРОПАХ) ---
+            projectors.push(new LaserProjector(w * 0.25, h + 10, true, 'LOW', true));  // Скрытый бас 1
+            projectors.push(new LaserProjector(w * 0.75, h + 10, false, 'LOW', true)); // Скрытый бас 2
+            
+            projectors.push(new LaserProjector(-10, h * 0.35, true, 'MID', true));     // Скрытый мид 1
+            projectors.push(new LaserProjector(w + 10, h * 0.35, false, 'MID', true));    // Скрытый мид 2
+
+            projectors.push(new LaserProjector(w * 0.25, -10, true, 'HIGH', true));    // Потолочный резерв 1
+            projectors.push(new LaserProjector(w * 0.75, -10, false, 'HIGH', true));   // Потолочный резерв 2
         }
         
         resize(); 
@@ -481,32 +504,37 @@
             
             analyser.getByteFrequencyData(dataArray);
 
-            // МАТЕМАТИЧЕСКАЯ ФИЛЬТРАЦИЯ ПОТОКА ЧАСТОТ (Разделяем бас, мид и хай)
-            let freqData = { low: 0, mid: 0, high: 0 };
+            let freqData = { low: 0, mid: 0, high: 0, total: 0 };
 
-            // Канал LOW (Бас): индексы 0 - 6 (самый низкий спектр суб-баса и бочки)
-            for(let i = 0; i < 6; i++) freqData.low += dataArray[i];
-            freqData.low /= 6;
+            // Собираем частоты с расширенными диапазонами для плотности
+            for(let i = 0; i < 10; i++) freqData.low += dataArray[i];
+            freqData.low /= 10;
 
-            // Канал MID (СЧ/Вокал): индексы 15 - 45 (основное тело музыки)
-            for(let i = 15; i < 45; i++) freqData.mid += dataArray[i];
-            freqData.mid /= 30;
+            for(let i = 12; i < 55; i++) freqData.mid += dataArray[i];
+            freqData.mid /= 43;
 
-            // Канал HIGH (ВЧ/Тарелки): индексы 60 - 120 (цоканье, биты, воздух)
-            for(let i = 60; i < 120; i++) freqData.high += dataArray[i];
-            freqData.high /= 60;
+            for(let i = 55; i < 140; i++) freqData.high += dataArray[i];
+            freqData.high /= 85;
 
-            // Стирание кадра с глубоким шлейфом
+            // Общая энергия трека
+            freqData.total = (freqData.low + freqData.mid + freqData.high) / 3;
+
+            // Проверяем биты по адаптивным порогам
+            const isLowBeat = lowDetector.check(freqData.low);
+            const isMidBeat = midDetector.check(freqData.mid);
+            const isHighBeat = highDetector.check(freqData.high);
+
+            // Очистка экрана с регулируемым шлейфом исчезновения кадров
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.22)'; 
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.28)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             ctx.globalCompositeOperation = 'screen';
 
-            // Деплой частот в каждый прожектор отдельно
+            // Обновляем и рендерим всю армию лазеров
             projectors.forEach(proj => {
-                proj.update(freqData);
-                proj.draw(ctx, maxLength);
+                proj.update(freqData, isLowBeat, isMidBeat, isHighBeat);
+                proj.draw(ctx, maxLength, freqData);
             });
         }
     </script>
