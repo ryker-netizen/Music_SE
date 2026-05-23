@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>/// SYNDICATE // STAGE_LASERS_V2_FIXED ///</title>
+    <title>/// SYNDICATE // FREQ_SPLIT_LASERS_PRO ///</title>
     <style>
         /* --- CORE & ESTHETICS --- */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
@@ -138,7 +138,7 @@
     <div class="interface-grid">
         
         <header>
-            <div class="glitch-title">SYNDICATE // STAGE_LASERS</div>
+            <div class="glitch-title">SYNDICATE // FREQ_PRO</div>
             <div class="system-status" id="track-name">AWAITING_SIGNAL...</div>
         </header>
 
@@ -155,8 +155,8 @@
 
             <div class="terminal-container">
                 <div class="terminal-logs" id="term-logs">
-                    <div class="term-line sys">>>> SYSTEM INITIALIZED.</div>
-                    <div class="term-line sys">>>> DYNAMIC LASER OPTICS: READY.</div>
+                    <div class="term-line sys">>>> STAGE CONTROLLER ONLINE.</div>
+                    <div class="term-line sys">>>> FREQUENCY CHANNELS LOADED.</div>
                 </div>
             </div>
         </div>
@@ -177,7 +177,7 @@
                     <button id="btn-stop" class="cyber-btn" disabled>STOP</button>
                 </div>
                 <div class="controls-group" id="mode-selectors">
-                    <button class="cyber-btn mode-btn active" data-mode="0">CLUB_SCANNERS</button>
+                    <button class="cyber-btn mode-btn active" data-mode="0">INTELLIGENT_SHOW</button>
                     <button class="cyber-btn mode-btn" data-mode="1">ARENA_SWEEP</button>
                     <button class="cyber-btn mode-btn" data-mode="2">CHAOS_STROBE</button>
                 </div>
@@ -205,9 +205,8 @@
         let isPlaying = false;
         let currentMode = 0;
         let animationId;
-        let maxLength = 2000; // Фикс отсутствующей переменной длины лазеров
+        let maxLength = 2000;
 
-        // Терминал логов
         function tLog(text, type = 'info') {
             const line = document.createElement('div');
             line.className = `term-line ${type}`;
@@ -216,7 +215,6 @@
             if (termLogs.children.length > 7) termLogs.removeChild(termLogs.children[0]);
         }
 
-        // Конфиг окна
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -225,7 +223,6 @@
         }
         window.addEventListener('resize', resize);
 
-        // Форматирование времени
         function formatTime(seconds) {
             if (isNaN(seconds)) return "00:00";
             const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -233,12 +230,11 @@
             return `${m}:${s}`;
         }
 
-        // Инициализация Аудио
         function initAudioEngine() {
             if (audioContext) return;
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256; // Увеличили для более точного анализа частот
+            analyser.fftSize = 512; // Увеличили разрешение до 512 для четкого деления полос
             bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
             
@@ -251,10 +247,9 @@
             source.connect(filterLow); filterLow.connect(filterMid); filterMid.connect(filterHigh);
             filterHigh.connect(analyser); analyser.connect(audioContext.destination);
 
-            tLog('AUDIO PIPELINE ONLINE.', 'sys');
+            tLog('PRO AUDIO PIPELINE ACTIVE.', 'sys');
         }
 
-        // Привязки UI
         document.getElementById('audio-upload').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
@@ -271,18 +266,18 @@
             audioPlayer.play();
             isPlaying = true;
             if (!animationId) render();
-            tLog('EXECUTE: PLAY', 'sys');
+            tLog('STAGE EXECUTE: PLAY', 'sys');
         });
 
         btnPause.addEventListener('click', () => {
             audioPlayer.pause(); isPlaying = false;
-            tLog('EXECUTE: PAUSE', 'sys');
+            tLog('STAGE EXECUTE: PAUSE', 'sys');
         });
 
         btnStop.addEventListener('click', () => {
             audioPlayer.pause(); audioPlayer.currentTime = 0; isPlaying = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            tLog('EXECUTE: STOP', 'sys');
+            tLog('STAGE EXECUTE: STOP', 'sys');
         });
 
         audioPlayer.addEventListener('timeupdate', () => {
@@ -304,99 +299,154 @@
                 document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 currentMode = parseInt(e.target.dataset.mode);
-                tLog(`STAGE LIGHTING SWITCHED TO MODE [${currentMode}]`, 'sys');
+                tLog(`ROUTING CHANGED. LIGHTS PATTERN: [${currentMode}]`, 'sys');
             });
         });
 
-        // --- ДВИЖОК ЛАЗЕРОВ (НОВАЯ ИСПРАВЛЕННАЯ АРХИТЕКТУРА) ---
+        // --- ИНТЕЛЛЕКТУАЛЬНЫЙ СВЕТОВОЙ ПРОЦЕССОР (PRO ЧАСТОТЫ) ---
 
-        // Обновленный чувствительный детектор бита
-        let bassHistory = [];
-        let beatCutoff = 100; 
-        function detectBeat(currentBass) {
-            bassHistory.push(currentBass);
-            if (bassHistory.length > 20) bassHistory.shift();
-            
-            let avgBass = bassHistory.reduce((a,b) => a+b, 0) / bassHistory.length;
-            
-            if (currentBass > beatCutoff && currentBass > 140) {
-                beatCutoff = currentBass * 1.15;
-                return true;
-            } else {
-                beatCutoff *= 0.96; 
-                if (beatCutoff < 100) beatCutoff = 100; 
-                return false;
+        // Автономные детекторы битов для разных частотных каналов
+        class BeatDetector {
+            constructor(cutoffMin, ratio) {
+                this.history = [];
+                this.cutoff = cutoffMin;
+                this.cutoffMin = cutoffMin;
+                this.ratio = ratio;
+            }
+            check(currentVal) {
+                this.history.push(currentVal);
+                if (this.history.length > 20) this.history.shift();
+                let avg = this.history.reduce((a,b) => a+b, 0) / this.history.length;
+                
+                if (currentVal > this.cutoff && currentVal > avg * this.ratio) {
+                    this.cutoff = currentVal * 1.12;
+                    return true;
+                } else {
+                    this.cutoff *= 0.95;
+                    if (this.cutoff < this.cutoffMin) this.cutoff = this.cutoffMin;
+                    return false;
+                }
             }
         }
 
-        // Класс лазерной пушки
+        const lowDetector = new BeatDetector(140, 1.15);
+        const midDetector = new BeatDetector(110, 1.12);
+        const highDetector = new BeatDetector(90, 1.15);
+
         class LaserProjector {
-            constructor(x, y, isLeft) {
+            // РОЛЬ: 'LOW' (бас), 'MID' (средние), 'HIGH' (высокие)
+            constructor(x, y, isLeft, role) {
                 this.x = x;
                 this.y = y;
                 this.isLeft = isLeft;
-                this.angle = isLeft ? Math.PI / 4 : (Math.PI * 3) / 4; 
+                this.role = role; 
+                
+                // Начальное позиционирование в зависимости от роли
+                if (role === 'LOW') {
+                    this.angle = isLeft ? Math.PI / 6 : (Math.PI * 5) / 6;
+                    this.color = '255, 0, 85'; // Басовые пушки — ядерный неоново-розовый
+                } else if (role === 'MID') {
+                    this.angle = isLeft ? Math.PI / 4 : (Math.PI * 3) / 4;
+                    this.color = '0, 255, 255'; // Средние частоты — ярко-циановый
+                } else {
+                    this.angle = isLeft ? Math.PI / 3 : (Math.PI * 2) / 3;
+                    this.color = '0, 255, 0'; // Высокие — ядовито-зеленый
+                }
+                
                 this.targetAngle = this.angle;
-                this.intensity = 0.2; 
-                this.color = '0, 255, 0'; 
+                this.intensity = 0.2;
             }
 
-            update(isBeat, bassAmount, highAmount) {
-                this.angle += (this.targetAngle - this.angle) * 0.15;
+            update(frequencies) {
+                // Плавная доводка углов
+                this.angle += (this.targetAngle - this.angle) * 0.12;
 
-                if (isBeat) {
-                    this.intensity = 1.0;
-                    
-                    if (currentMode === 0) { // CLUB_SCANNERS
-                        const base = this.isLeft ? 0 : Math.PI;
-                        const spread = Math.random() * (Math.PI / 1.5);
-                        this.targetAngle = this.isLeft ? base + spread : base - spread;
-                    } 
-                    else if (currentMode === 1) { // ARENA_SWEEP
-                        this.targetAngle = (Math.PI / 4) + (Math.random() * Math.PI / 2);
-                    }
-                    else if (currentMode === 2) { // CHAOS_STROBE
-                        this.targetAngle = Math.random() * Math.PI * 2;
-                        this.angle = this.targetAngle; 
-                    }
+                // Медленное фоновое покачивание в режиме ожидания (Idle)
+                this.targetAngle += (Math.sin(Date.now() / 1200 + this.x) * 0.002);
 
-                    const colors = ['0, 255, 0', '255, 0, 85', '0, 255, 255', '255, 255, 0', '255, 0, 255'];
-                    if (Math.random() > 0.4) this.color = colors[Math.floor(Math.random() * colors.length)];
-                } else {
-                    // Медленный спад интенсивности в тишине
-                    const decay = 0.05 - (bassAmount / 255) * 0.04;
-                    this.intensity -= Math.max(0.01, decay);
-                    
-                    // Idle mode фоновое шевеление
-                    this.targetAngle += (Math.sin(Date.now() / 1500 + this.x) * 0.003);
-                    if (this.intensity < 0.2) this.intensity = 0.2; 
+                // Отработка ролей в зависимости от частот
+                if (this.role === 'LOW') {
+                    const isLowBeat = lowDetector.check(frequencies.low);
+                    if (isLowBeat) {
+                        this.intensity = 1.0; // Максимальная вспышка от бочки
+                        
+                        if (currentMode === 0 || currentMode === 1) {
+                            // Басовые пушки бьют строго веером крест-накрест
+                            this.targetAngle = this.isLeft ? (Math.random() * 0.4) : (Math.PI - Math.random() * 0.4);
+                        } else if (currentMode === 2) {
+                            this.targetAngle = Math.random() * Math.PI;
+                            this.angle = this.targetAngle;
+                        }
+                        
+                        // Меняем цвет баса на желтый/красный при перегрузе
+                        if (frequencies.low > 220) this.color = '255, 255, 0';
+                        else this.color = '255, 0, 85';
+                    } else {
+                        this.intensity -= 0.03; // Бас затухает плавно, создавая массу
+                    }
+                } 
+                
+                else if (this.role === 'MID') {
+                    const isMidBeat = midDetector.check(frequencies.mid);
+                    // Средние частоты реагируют на вокал и гитары — они постоянно сканируют пространство
+                    if (isMidBeat) {
+                        this.intensity = 0.85;
+                        const baseAngle = this.isLeft ? Math.PI/6 : Math.PI*0.5;
+                        this.targetAngle = baseAngle + (Math.random() * Math.PI / 3);
+                        
+                        if (Math.random() > 0.7) this.color = '255, 0, 255'; // Пурпурный бафф
+                        else this.color = '0, 255, 255';
+                    } else {
+                        // Движение средних частот зависит от громкости мелодии
+                        this.targetAngle += (Math.cos(Date.now() / 500) * (frequencies.mid / 255) * 0.01);
+                        this.intensity -= 0.04;
+                    }
+                } 
+                
+                else if (this.role === 'HIGH') {
+                    const isHighBeat = highDetector.check(frequencies.high);
+                    // Высокие частоты (хай-хэты, клики) — работают как резкий стробоскоп
+                    if (isHighBeat) {
+                        this.intensity = 1.0;
+                        // Мгновенный хаотичный выстрел в случайную точку
+                        this.targetAngle = Math.random() * Math.PI;
+                        if (currentMode === 2) this.angle = this.targetAngle; 
+                        
+                        this.color = Math.random() > 0.5 ? '0, 255, 0' : '255, 255, 255'; // Зеленый или чистый белый свет
+                    } else {
+                        this.intensity -= 0.12; // Высокие тухнут СВЕРХБЫСТРО, как вспышки стробоскопа!
+                    }
                 }
 
-                if (currentMode === 2 && highAmount > 130 && Math.random() > 0.4) {
-                    this.intensity = 0.9;
-                }
+                // Ограничитель минимальной яркости, чтобы лучи не исчезали совсем
+                if (this.intensity < 0.15) this.intensity = 0.15;
             }
 
             draw(ctx, maxLength) {
-                if (this.intensity <= 0.01) return; 
+                if (this.intensity <= 0.01) return;
 
                 const endX = this.x + Math.cos(this.angle) * maxLength;
                 const endY = this.y - Math.sin(this.angle) * maxLength;
 
-                // 1. Широкое неоновое свечение
-                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.18})`;
-                ctx.lineWidth = 18; ctx.stroke();
+                // Отрисовка луча с адаптивной толщиной (Бас — толстый, Высокие — тонкие иглы)
+                let baseWidth = 4;
+                if (this.role === 'LOW') baseWidth = 8;
+                if (this.role === 'HIGH') baseWidth = 2;
 
-                // 2. Яркое ядро
+                // 1. Внешнее гало
+                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
+                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.15})`;
+                ctx.lineWidth = baseWidth * 4; ctx.stroke();
+
+                // 2. Сердцевина луча
                 ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
                 ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.6})`;
-                ctx.lineWidth = 5; ctx.stroke();
+                ctx.lineWidth = baseWidth; ctx.stroke();
 
-                // 3. Белый силовой луч по центру
+                // 3. Белый стержень лазера
                 ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.95})`;
-                ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.9})`;
+                ctx.lineWidth = baseWidth * 0.25; ctx.stroke();
             }
         }
 
@@ -406,48 +456,56 @@
             const w = window.innerWidth;
             const h = window.innerHeight;
             
-            // 4 нижних прожектора
-            projectors.push(new LaserProjector(w * 0.1, h + 10, true));
-            projectors.push(new LaserProjector(w * 0.3, h + 10, true));
-            projectors.push(new LaserProjector(w * 0.7, h + 10, false));
-            projectors.push(new LaserProjector(w * 0.9, h + 10, false));
+            // ЖЕСТКОЕ РАСПРЕДЕЛЕНИЕ СЦЕНИЧЕСКИХ ПОЗИЦИЙ И ЧАСТОТНЫХ РОЛЕЙ:
+            
+            // 1. БАСОВЫЙ ЦЕХ (LOW) — Находятся строго по центру снизу, бьют мощным неоновым веером вверх
+            projectors.push(new LaserProjector(w * 0.45, h + 10, true, 'LOW'));
+            projectors.push(new LaserProjector(w * 0.55, h + 10, false, 'LOW'));
 
-            // 4 боковых прожектора
-            projectors.push(new LaserProjector(-10, h * 0.3, true));
-            projectors.push(new LaserProjector(-10, h * 0.7, true));
-            projectors.push(new LaserProjector(w + 10, h * 0.3, false));
-            projectors.push(new LaserProjector(w + 10, h * 0.7, false));
+            // 2. МЕЛОДИЧЕСКИЙ ЦЕХ (MID) — По углам снизу, сканируют весь экран крест-накрест
+            projectors.push(new LaserProjector(w * 0.1, h + 10, true, 'MID'));
+            projectors.push(new LaserProjector(w * 0.9, h + 10, false, 'MID'));
+
+            // 3. СТРОБОСКОПИЧЕСКИЙ ЦЕХ (HIGH) — Боковые прострелы сверху и снизу, выдают резкие вспышки-иглы
+            projectors.push(new LaserProjector(-10, h * 0.2, true, 'HIGH'));
+            projectors.push(new LaserProjector(w + 10, h * 0.2, false, 'HIGH'));
+            projectors.push(new LaserProjector(-10, h * 0.7, true, 'HIGH'));
+            projectors.push(new LaserProjector(w + 10, h * 0.7, false, 'HIGH'));
         }
         
         resize(); 
 
-        // ИСПРАВЛЕННЫЙ ЦИКЛ РЕНДЕРА (ФИКС ОБРЕЗАННОГО СИНТАКСИСА)
         function render() {
             if (!isPlaying) { animationId = null; return; }
             animationId = requestAnimationFrame(render);
             
             analyser.getByteFrequencyData(dataArray);
 
-            let bass = 0, high = 0;
-            // Собираем частоты
-            for(let i = 0; i < 8; i++) bass += dataArray[i]; 
-            for(let i = 40; i < 110; i++) high += dataArray[i]; 
-            bass /= 8;
-            high /= 70;
+            // МАТЕМАТИЧЕСКАЯ ФИЛЬТРАЦИЯ ПОТОКА ЧАСТОТ (Разделяем бас, мид и хай)
+            let freqData = { low: 0, mid: 0, high: 0 };
 
-            const isBeat = detectBeat(bass);
+            // Канал LOW (Бас): индексы 0 - 6 (самый низкий спектр суб-баса и бочки)
+            for(let i = 0; i < 6; i++) freqData.low += dataArray[i];
+            freqData.low /= 6;
 
-            // Очистка экрана со шлейфом (motion blur)
+            // Канал MID (СЧ/Вокал): индексы 15 - 45 (основное тело музыки)
+            for(let i = 15; i < 45; i++) freqData.mid += dataArray[i];
+            freqData.mid /= 30;
+
+            // Канал HIGH (ВЧ/Тарелки): индексы 60 - 120 (цоканье, биты, воздух)
+            for(let i = 60; i < 120; i++) freqData.high += dataArray[i];
+            freqData.high /= 60;
+
+            // Стирание кадра с глубоким шлейфом
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; 
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.22)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Врубаем режим сложения цветов для рейв-эффекта
             ctx.globalCompositeOperation = 'screen';
 
-            // Обновляем и рисуем все лазеры
+            // Деплой частот в каждый прожектор отдельно
             projectors.forEach(proj => {
-                proj.update(isBeat, bass, high);
+                proj.update(freqData);
                 proj.draw(ctx, maxLength);
             });
         }
