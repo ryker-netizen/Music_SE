@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>/// SYNDICATE // STAGE_LASERS_V2 ///</title>
+    <title>/// SYNDICATE // STAGE_LASERS_V2_FIXED ///</title>
     <style>
         /* --- CORE & ESTHETICS --- */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
@@ -205,6 +205,7 @@
         let isPlaying = false;
         let currentMode = 0;
         let animationId;
+        let maxLength = 2000; // Фикс отсутствующей переменной длины лазеров
 
         // Терминал логов
         function tLog(text, type = 'info') {
@@ -219,7 +220,8 @@
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            initProjectors(); // Пересоздаем лазеры под новый размер
+            maxLength = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+            initProjectors(); 
         }
         window.addEventListener('resize', resize);
 
@@ -236,7 +238,7 @@
             if (audioContext) return;
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 128; // Нам не нужно много полос для лазеров
+            analyser.fftSize = 256; // Увеличили для более точного анализа частот
             bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
             
@@ -306,183 +308,146 @@
             });
         });
 
-        // --- ДВИЖОК ЛАЗЕРОВ (НОВАЯ АРХИТЕКТУРА) ---
+        // --- ДВИЖОК ЛАЗЕРОВ (НОВАЯ ИСПРАВЛЕННАЯ АРХИТЕКТУРА) ---
 
-        // Обновленный детектор бита
+        // Обновленный чувствительный детектор бита
         let bassHistory = [];
-        let beatCutoff = 100; // Установили начальный порог
+        let beatCutoff = 100; 
         function detectBeat(currentBass) {
             bassHistory.push(currentBass);
             if (bassHistory.length > 20) bassHistory.shift();
             
             let avgBass = bassHistory.reduce((a,b) => a+b, 0) / bassHistory.length;
             
-            // Если бас резкий - фиксируем бит
-            if (currentBass > beatCutoff && currentBass > 150) {
-                beatCutoff = currentBass * 1.2;
+            if (currentBass > beatCutoff && currentBass > 140) {
+                beatCutoff = currentBass * 1.15;
                 return true;
             } else {
-                // Мягкое снижение порога: лазеры всегда будут реагировать, даже на тихий бас
-                beatCutoff *= 0.92; 
-                if (beatCutoff < 100) beatCutoff = 100; // Порог никогда не упадет до нуля
+                beatCutoff *= 0.96; 
+                if (beatCutoff < 100) beatCutoff = 100; 
                 return false;
             }
         }
 
-        // Класс физического лазера (установки)
+        // Класс лазерной пушки
         class LaserProjector {
             constructor(x, y, isLeft) {
                 this.x = x;
                 this.y = y;
                 this.isLeft = isLeft;
-                this.angle = isLeft ? Math.PI / 4 : (Math.PI * 3) / 4; // Начальный угол
+                this.angle = isLeft ? Math.PI / 4 : (Math.PI * 3) / 4; 
                 this.targetAngle = this.angle;
-                this.intensity = 0; // Насколько ярко светит (от 0 до 1)
-                this.color = '0, 255, 0'; // RGB строка для быстрой вставки
+                this.intensity = 0.2; 
+                this.color = '0, 255, 0'; 
             }
 
-            // Вызывается каждый кадр
             update(isBeat, bassAmount, highAmount) {
-                // Плавное движение лазера к цели
                 this.angle += (this.targetAngle - this.angle) * 0.15;
 
                 if (isBeat) {
-                    // При ударе бита: лазер вспыхивает, меняет цель и цвет
                     this.intensity = 1.0;
                     
-                    if (currentMode === 0) { // CLUB_SCANNERS (бьют случайным веером, часто крест-накрест)
+                    if (currentMode === 0) { // CLUB_SCANNERS
                         const base = this.isLeft ? 0 : Math.PI;
                         const spread = Math.random() * (Math.PI / 1.5);
                         this.targetAngle = this.isLeft ? base + spread : base - spread;
                     } 
-                    else if (currentMode === 1) { // ARENA_SWEEP (широкие синхронные движения)
-                        // Все левые идут в одну сторону, правые в другую
+                    else if (currentMode === 1) { // ARENA_SWEEP
                         this.targetAngle = (Math.PI / 4) + (Math.random() * Math.PI / 2);
                     }
-                    else if (currentMode === 2) { // CHAOS_STROBE (дерганные жесткие углы)
+                    else if (currentMode === 2) { // CHAOS_STROBE
                         this.targetAngle = Math.random() * Math.PI * 2;
-                        this.angle = this.targetAngle; // Мгновенный перескок, без плавности
+                        this.angle = this.targetAngle; 
                     }
 
-                    // Смена цвета на сильных битах
-                    const colors = ['0, 255, 0', '255, 0, 85', '0, 255, 255', '255, 255, 0'];
-                    if (Math.random() > 0.6) this.color = colors[Math.floor(Math.random() * colors.length)];
+                    const colors = ['0, 255, 0', '255, 0, 85', '0, 255, 255', '255, 255, 0', '255, 0, 255'];
+                    if (Math.random() > 0.4) this.color = colors[Math.floor(Math.random() * colors.length)];
                 } else {
-                    // В тишине лазер затухает. Чем громче музыка в целом (bassAmount), тем дольше он держится
+                    // Медленный спад интенсивности в тишине
                     const decay = 0.05 - (bassAmount / 255) * 0.04;
                     this.intensity -= Math.max(0.01, decay);
-                    if (this.intensity < 0) this.intensity = 0;
+                    
+                    // Idle mode фоновое шевеление
+                    this.targetAngle += (Math.sin(Date.now() / 1500 + this.x) * 0.003);
+                    if (this.intensity < 0.2) this.intensity = 0.2; 
                 }
 
-                // В режиме CHAOS добавляем мерцание от высоких частот (hi-hats)
-                if (currentMode === 2 && highAmount > 150 && Math.random() > 0.5) {
-                    this.intensity = 0.8;
+                if (currentMode === 2 && highAmount > 130 && Math.random() > 0.4) {
+                    this.intensity = 0.9;
                 }
             }
 
             draw(ctx, maxLength) {
-                if (this.intensity <= 0.01) return; // Не рисуем, если выключен
+                if (this.intensity <= 0.01) return; 
 
                 const endX = this.x + Math.cos(this.angle) * maxLength;
                 const endY = this.y - Math.sin(this.angle) * maxLength;
 
-                // Быстрый рендер свечения без laggy shadowBlur
-                // 1. Широкое, прозрачное гало
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.15})`;
-                ctx.lineWidth = 15;
-                ctx.stroke();
+                // 1. Широкое неоновое свечение
+                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
+                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.18})`;
+                ctx.lineWidth = 18; ctx.stroke();
 
-                // 2. Средняя сердцевина
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.5})`;
-                ctx.lineWidth = 4;
-                ctx.stroke();
+                // 2. Яркое ядро
+                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
+                ctx.strokeStyle = `rgba(${this.color}, ${this.intensity * 0.6})`;
+                ctx.lineWidth = 5; ctx.stroke();
 
-                // 3. Яркий белый центр (стержень лазера)
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(endX, endY);
-                ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.9})`;
-                ctx.lineWidth = 1;
-                ctx.stroke();
+                // 3. Белый силовой луч по центру
+                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(endX, endY);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.intensity * 0.95})`;
+                ctx.lineWidth = 1.5; ctx.stroke();
             }
         }
 
         let projectors = [];
         function initProjectors() {
             projectors = [];
-            // Создаем 8 лазерных установок: 4 слева, 4 справа (вдоль нижней и боковых кромок)
             const w = window.innerWidth;
             const h = window.innerHeight;
             
+            // 4 нижних прожектора
             projectors.push(new LaserProjector(w * 0.1, h + 10, true));
-            projectors.push(new LaserProjector(w * 0.25, h + 10, true));
-            projectors.push(new LaserProjector(w * 0.75, h + 10, false));
+            projectors.push(new LaserProjector(w * 0.3, h + 10, true));
+            projectors.push(new LaserProjector(w * 0.7, h + 10, false));
             projectors.push(new LaserProjector(w * 0.9, h + 10, false));
 
-            // Боковые прострелы
-            projectors.push(new LaserProjector(-10, h * 0.5, true));
-            projectors.push(new LaserProjector(-10, h * 0.8, true));
-            projectors.push(new LaserProjector(w + 10, h * 0.5, false));
-            projectors.push(new LaserProjector(w + 10, h * 0.8, false));
+            // 4 боковых прожектора
+            projectors.push(new LaserProjector(-10, h * 0.3, true));
+            projectors.push(new LaserProjector(-10, h * 0.7, true));
+            projectors.push(new LaserProjector(w + 10, h * 0.3, false));
+            projectors.push(new LaserProjector(w + 10, h * 0.7, false));
         }
         
-        // Первоначальный вызов
         resize(); 
 
+        // ИСПРАВЛЕННЫЙ ЦИКЛ РЕНДЕРА (ФИКС ОБРЕЗАННОГО СИНТАКСИСА)
         function render() {
             if (!isPlaying) { animationId = null; return; }
             animationId = requestAnimationFrame(render);
             
-            if (!analyser) return;
             analyser.getByteFrequencyData(dataArray);
 
-                    // Считаем общую энергию частот
             let bass = 0, high = 0;
-            for(let i=0; i<6; i++) bass += dataArray[i]; // Самые низы
-            for(let i=40; i<100 && i < dataArray.length; i++) high += dataArray[i]; // Верха
-            bass /= 6;
-            high /= 60;
+            // Собираем частоты
+            for(let i = 0; i < 8; i++) bass += dataArray[i]; 
+            for(let i = 40; i < 110; i++) high += dataArray[i]; 
+            bass /= 8;
+            high /= 70;
 
             const isBeat = detectBeat(bass);
 
-            // Очистка экрана с эффектом исчезновения старых кадров
+            // Очистка экрана со шлейфом (motion blur)
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Рисуем базовую "сетку" сцены для атмосферы
-            ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
-            ctx.lineWidth = 0.5;
-            for(let i = 0; i < canvas.width; i += 100) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, canvas.height);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(canvas.width, i);
-                ctx.stroke();
-            }
+            // Врубаем режим сложения цветов для рейв-эффекта
+            ctx.globalCompositeOperation = 'screen';
 
-            // Максимальная длина лазерных лучей
-            const maxLength = Math.max(canvas.width, canvas.height) * 1.2;
-            
-            // Обновляем и рисуем каждый проектор
+            // Обновляем и рисуем все лазеры
             projectors.forEach(proj => {
                 proj.update(isBeat, bass, high);
-                
-                // Если нет бита, добавляем фоновое движение (Idle mode)
-                if (!isBeat) {
-                    proj.targetAngle += (Math.sin(Date.now() / 2000) * 0.01);
-                    if (proj.intensity < 0.2) proj.intensity = 0.2; // Лазеры не гаснут полностью
-                }
-                
                 proj.draw(ctx, maxLength);
             });
         }
