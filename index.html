@@ -308,20 +308,23 @@
 
         // --- ДВИЖОК ЛАЗЕРОВ (НОВАЯ АРХИТЕКТУРА) ---
 
-        // Детектор бита (вычисляет резкие скачки баса)
+        // Обновленный детектор бита
         let bassHistory = [];
-        let beatCutoff = 0;
+        let beatCutoff = 100; // Установили начальный порог
         function detectBeat(currentBass) {
             bassHistory.push(currentBass);
             if (bassHistory.length > 20) bassHistory.shift();
             
             let avgBass = bassHistory.reduce((a,b) => a+b, 0) / bassHistory.length;
             
-            if (currentBass > beatCutoff && currentBass > avgBass * 1.3 && currentBass > 180) {
-                beatCutoff = currentBass * 1.1; // Устанавливаем порог, чтобы не было "двойных" срабатываний
+            // Если бас резкий - фиксируем бит
+            if (currentBass > beatCutoff && currentBass > 150) {
+                beatCutoff = currentBass * 1.2;
                 return true;
             } else {
-                beatCutoff *= 0.95; // Порог постепенно падает
+                // Мягкое снижение порога: лазеры всегда будут реагировать, даже на тихий бас
+                beatCutoff *= 0.92; 
+                if (beatCutoff < 100) beatCutoff = 100; // Порог никогда не упадет до нуля
                 return false;
             }
         }
@@ -435,29 +438,51 @@
         function render() {
             if (!isPlaying) { animationId = null; return; }
             animationId = requestAnimationFrame(render);
+            
+            if (!analyser) return;
             analyser.getByteFrequencyData(dataArray);
 
-            // Считаем общую энергию частот
+                    // Считаем общую энергию частот
             let bass = 0, high = 0;
             for(let i=0; i<6; i++) bass += dataArray[i]; // Самые низы
-            for(let i=40; i<100; i++) high += dataArray[i]; // Верха
+            for(let i=40; i<100 && i < dataArray.length; i++) high += dataArray[i]; // Верха
             bass /= 6;
             high /= 60;
 
             const isBeat = detectBeat(bass);
 
-                    // Очистка экрана с эффектом исчезновения старых кадров
+            // Очистка экрана с эффектом исчезновения старых кадров
             ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // Чем меньше цифра, тем длиннее шлейф света
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            ctx.globalCompositeOperation = 'lighter'; // Смешивание цветов (лазеры накладываются ярко)
+            // Рисуем базовую "сетку" сцены для атмосферы
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
+            ctx.lineWidth = 0.5;
+            for(let i = 0; i < canvas.width; i += 100) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
 
-            const maxLength = Math.sqrt(canvas.width**2 + canvas.height**2);
-
-            // Обновляем и рисуем каждый лазер
+            // Максимальная длина лазерных лучей
+            const maxLength = Math.max(canvas.width, canvas.height) * 1.2;
+            
+            // Обновляем и рисуем каждый проектор
             projectors.forEach(proj => {
                 proj.update(isBeat, bass, high);
+                
+                // Если нет бита, добавляем фоновое движение (Idle mode)
+                if (!isBeat) {
+                    proj.targetAngle += (Math.sin(Date.now() / 2000) * 0.01);
+                    if (proj.intensity < 0.2) proj.intensity = 0.2; // Лазеры не гаснут полностью
+                }
+                
                 proj.draw(ctx, maxLength);
             });
         }
