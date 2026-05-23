@@ -3,29 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>/// SYNDICATE_ECLIPSE // LIGHT_MUSIC_STATION ///</title>
+    <title>/// SYNDICATE // LASER_STAGE ///</title>
     <style>
         /* --- CORE & ESTHETICS --- */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
-            background-color: #000000;
+            background-color: #000;
             color: #ff0055;
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
             width: 100vw;
             height: 100vh;
-        }
-
-        /* CRT GLITCH OVERLAY */
-        body::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 999;
-            background-size: 100% 4px, 6px 100%;
-            pointer-events: none;
         }
 
         /* --- VISUAL ENGINE --- */
@@ -34,8 +22,6 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 1;
-            /* Для режима пикселизации */
-            image-rendering: pixelated; 
         }
 
         /* --- INTERFACE GRID --- */
@@ -53,96 +39,73 @@
         /* HEADER */
         header {
             display: flex; justify-content: space-between; align-items: flex-start;
-            border-bottom: 1px dashed #ff0055; padding-bottom: 10px;
+            border-bottom: 1px dashed rgba(255, 0, 85, 0.4); padding-bottom: 10px;
         }
         .glitch-title {
             font-size: 24px; font-weight: bold; color: #fff;
-            text-shadow: 2px 0 #ff0055, -2px 0 #00ffff;
+            text-shadow: 2px 0 #0f0, -2px 0 #ff0055; /* Под цвет лазеров */
             letter-spacing: 4px;
         }
-        .system-status { font-size: 11px; color: #00ffff; text-align: right; }
+        .system-status { font-size: 11px; color: #0f0; text-align: right; text-transform: uppercase; }
 
-        /* MID DECK - GEOMETRY & EQ */
+        /* MID DECK - EQ & LOGS */
         .mid-deck {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: flex-end;
             flex-grow: 1; padding: 20px 0;
-        }
-
-        /* GEOMETRY NODES */
-        .geometry-node {
-            width: 100px; height: 100px;
-            border: 1px solid rgba(255, 0, 85, 0.3);
-            position: relative; display: flex; align-items: center; justify-content: center;
-        }
-        .geometry-node::before {
-            content: ''; position: absolute; width: 80%; height: 80%;
-            border: 1px double #00ffff; animation: spin-forward 8s linear infinite;
-        }
-        .geometry-node::after {
-            content: ''; position: absolute; width: 50%; height: 50%;
-            border: 1px dashed #ff0055; animation: spin-backward 4s linear infinite;
         }
 
         /* EQUALIZER HARDWARE PANEL (LEFT) */
         .eq-panel {
-            background: rgba(5, 5, 5, 0.85);
-            border: 1px solid #00ffff;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #0f0;
+            backdrop-filter: blur(5px);
             padding: 15px; display: flex; flex-direction: column; gap: 10px;
-            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.1);
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
         }
-        .eq-label { font-size: 10px; color: #00ffff; display: flex; justify-content: space-between;}
+        .eq-label { font-size: 10px; color: #0f0; display: flex; justify-content: space-between;}
         input[type="range"].eq-slider {
-            -webkit-appearance: none; width: 100px; height: 4px; background: #333; outline: none;
+            -webkit-appearance: none; width: 120px; height: 2px; background: #333; outline: none;
         }
         input[type="range"].eq-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 10px; height: 15px; background: #00ffff; cursor: pointer;
+            -webkit-appearance: none; width: 6px; height: 16px; background: #0f0; cursor: pointer;
+            box-shadow: 0 0 8px #0f0;
         }
 
-        /* INTERACTIVE TERMINAL AI (BOTTOM RIGHT) */
+        /* SYSTEM TERMINAL (RIGHT) - NO AI, JUST LOGS */
         .terminal-container {
-            position: absolute; right: 20px; bottom: 120px;
-            width: 320px; height: 200px;
-            background: rgba(0, 0, 0, 0.9); border: 1px solid #ff0055;
+            width: 300px; height: 150px;
+            background: rgba(0, 0, 0, 0.7); border: 1px solid #ff0055;
+            backdrop-filter: blur(5px);
             display: flex; flex-direction: column;
-            box-shadow: 0 0 15px rgba(255, 0, 85, 0.2);
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.1);
         }
         .terminal-logs {
             flex-grow: 1; padding: 10px; font-size: 11px;
             display: flex; flex-direction: column; justify-content: flex-end;
             overflow: hidden; gap: 4px;
         }
-        .term-line { white-space: pre-wrap; word-wrap: break-word; }
-        .term-line.sys { color: #00ffff; }
-        .term-line.err { color: #ff0000; text-shadow: 0 0 5px red; }
-        .term-line.ai { color: #ff0055; }
-        .term-line.user { color: #fff; }
-        
-        .terminal-input-wrapper {
-            display: flex; border-top: 1px dashed #ff0055; padding: 5px;
-        }
-        .terminal-input-wrapper span { color: #ff0055; margin-right: 5px; }
-        #term-input {
-            background: transparent; border: none; color: #fff;
-            font-family: inherit; font-size: 11px; width: 100%; outline: none;
-        }
+        .term-line { white-space: pre-wrap; word-wrap: break-word; color: #00ffff; }
+        .term-line.sys { color: #ff0055; }
+        .term-line.info { color: #fff; }
 
         /* BOTTOM CONTROL PANEL */
         .control-panel {
-            background: rgba(5, 5, 5, 0.9); border: 1px solid #ff0055;
+            background: rgba(0, 0, 0, 0.8); border: 1px solid #0f0;
             padding: 15px; display: flex; flex-direction: column; gap: 15px;
+            backdrop-filter: blur(10px);
         }
         
         /* TRACK PROGRESS */
         .track-progress-container {
-            display: flex; align-items: center; gap: 10px; font-size: 12px;
+            display: flex; align-items: center; gap: 10px; font-size: 12px; color: #fff;
         }
         #track-progress {
-            -webkit-appearance: none; flex-grow: 1; height: 6px;
-            background: rgba(255, 0, 85, 0.2); outline: none; cursor: pointer;
+            -webkit-appearance: none; flex-grow: 1; height: 2px;
+            background: rgba(0, 255, 0, 0.3); outline: none; cursor: pointer;
         }
         #track-progress::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 8px; height: 16px; background: #ff0055;
-            box-shadow: 0 0 10px #ff0055;
+            -webkit-appearance: none; width: 10px; height: 10px; background: #0f0;
+            border-radius: 50%; box-shadow: 0 0 10px #0f0;
         }
 
         .panel-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
@@ -150,31 +113,22 @@
 
         /* BUTTONS */
         .cyber-btn {
-            background: transparent; color: #ff0055; border: 1px solid #ff0055;
+            background: transparent; color: #fff; border: 1px solid #333;
             padding: 8px 12px; font-family: inherit; font-size: 11px;
-            text-transform: uppercase; cursor: pointer; transition: all 0.15s;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s;
         }
         .cyber-btn:hover, .cyber-btn.active {
-            background: #ff0055; color: #000; box-shadow: 0 0 15px #ff0055; font-weight: bold;
+            background: #0f0; color: #000; border-color: #0f0;
+            box-shadow: 0 0 15px #0f0; font-weight: bold;
         }
-        .cyber-btn-cyan { color: #00ffff; border-color: #00ffff; }
-        .cyber-btn-cyan:hover, .cyber-btn-cyan.active {
-            background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff;
+        .cyber-btn:disabled { color: #555; cursor: not-allowed; border-color: #222; }
+        .cyber-btn:disabled:hover { background: transparent; box-shadow: none; font-weight: normal; }
+        
+        .cyber-btn-red { color: #ff0055; border-color: #ff0055; }
+        .cyber-btn-red:hover, .cyber-btn-red.active {
+            background: #ff0055; color: #000; box-shadow: 0 0 15px #ff0055;
         }
         #audio-upload { display: none; }
-
-        /* ANIMATIONS */
-        @keyframes spin-forward { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes spin-backward { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
-        .vibrate { animation: shake 0.2s infinite; }
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            20% { transform: translate(-1px, -2px) rotate(-1deg); }
-            40% { transform: translate(-2px, 1px) rotate(1deg); }
-            60% { transform: translate(2px, 1px) rotate(0deg); }
-            80% { transform: translate(1px, -1px) rotate(1deg); }
-            100% { transform: translate(-1px, 2px) rotate(-1deg); }
-        }
     </style>
 </head>
 <body>
@@ -184,15 +138,11 @@
     <div class="interface-grid">
         
         <header>
-            <div class="glitch-title" id="main-title">SYNDICATE // LIGHT_MUSIC</div>
-            <div class="system-status" id="sys-status">
-                STABILITY: <span id="stability-display">150</span><br>
-                <span style="color:#ff0055">STATE: AWAITING_AUDIO</span>
-            </div>
+            <div class="glitch-title">SYNDICATE // STAGE_LASERS</div>
+            <div class="system-status" id="track-name">AWAITING_SIGNAL...</div>
         </header>
 
         <div class="mid-deck">
-            <!-- REALTIME EQUALIZER HARDWARE -->
             <div class="eq-panel">
                 <div style="font-size: 12px; font-weight: bold; margin-bottom: 5px; color:#fff">FREQ_CONTROL</div>
                 
@@ -204,27 +154,16 @@
                 
                 <div class="eq-label"><span>LOW (BASS)</span> <span id="val-low">0dB</span></div>
                 <input type="range" class="eq-slider" id="eq-low" min="-20" max="20" value="0">
-
-                <button class="cyber-btn cyber-btn-cyan" id="btn-pixelate" style="margin-top: 10px;">PIXEL_MODE: OFF</button>
             </div>
 
-            <div class="geometry-node" id="center-node"></div>
-        </div>
-
-        <!-- AI TERMINAL -->
-        <div class="terminal-container">
-            <div class="terminal-logs" id="term-logs">
-                <div class="term-line sys">>>> SYSTEM BOOTED.</div>
-                <div class="term-line sys">>>> AI ENTITY 'ECLIPSE' INITIALIZED.</div>
-                <div class="term-line ai">"I am empty. Feed me sound."</div>
-            </div>
-            <div class="terminal-input-wrapper">
-                <span>></span>
-                <input type="text" id="term-input" autocomplete="off" placeholder="Communicate...">
+            <div class="terminal-container">
+                <div class="terminal-logs" id="term-logs">
+                    <div class="term-line sys">>>> SYSTEM INITIALIZED.</div>
+                    <div class="term-line sys">>>> OPTICS: ONLINE.</div>
+                </div>
             </div>
         </div>
 
-        <!-- CONTROL DECK -->
         <div class="control-panel">
             <div class="track-progress-container">
                 <span id="time-current">00:00</span>
@@ -234,22 +173,16 @@
 
             <div class="panel-row">
                 <div class="controls-group">
-                    <label for="audio-upload" class="cyber-btn cyber-btn-cyan">LOAD_FILE</label>
+                    <label for="audio-upload" class="cyber-btn cyber-btn-red">LOAD_TRACK</label>
                     <input type="file" id="audio-upload" accept="audio/*">
                     <button id="btn-play" class="cyber-btn" disabled>PLAY</button>
                     <button id="btn-pause" class="cyber-btn" disabled>PAUSE</button>
                     <button id="btn-stop" class="cyber-btn" disabled>STOP</button>
                 </div>
-                <div class="system-status" id="track-name">NO_FILE</div>
-            </div>
-            
-            <div class="panel-row" style="border-top: 1px dashed rgba(255, 0, 85, 0.4); padding-top: 10px;">
                 <div class="controls-group" id="mode-selectors">
-                    <!-- Новые режимы именно светомузыки -->
-                    <button class="cyber-btn mode-btn active" data-mode="0">RGB_FLOOD</button>
-                    <button class="cyber-btn mode-btn" data-mode="1">STROBE_OPTICS</button>
-                    <button class="cyber-btn mode-btn" data-mode="2">NEON_PULSE</button>
-                    <button class="cyber-btn mode-btn" data-mode="3">VOID_DUST</button>
+                    <button class="cyber-btn mode-btn active" data-mode="0">CONCERT_FAN</button>
+                    <button class="cyber-btn mode-btn" data-mode="1">CROSS_SWEEP</button>
+                    <button class="cyber-btn mode-btn" data-mode="2">ORBITAL_BEAMS</button>
                 </div>
             </div>
         </div>
@@ -259,117 +192,41 @@
     <audio id="audio-player" crossorigin="anonymous"></audio>
 
     <script>
-        // DOM Elements
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
         const audioPlayer = document.getElementById('audio-player');
         
-        // Controls
         const btnPlay = document.getElementById('btn-play');
         const btnPause = document.getElementById('btn-pause');
         const btnStop = document.getElementById('btn-stop');
         const trackProgress = document.getElementById('track-progress');
-        const timeCurrent = document.getElementById('time-current');
-        const timeTotal = document.getElementById('time-total');
-        
-        // EQ & Pixel
-        const eqLow = document.getElementById('eq-low');
-        const eqMid = document.getElementById('eq-mid');
-        const eqHigh = document.getElementById('eq-high');
-        const btnPixelate = document.getElementById('btn-pixelate');
-        
-        // Terminal & Logic
         const termLogs = document.getElementById('term-logs');
-        const termInput = document.getElementById('term-input');
-        const stabilityDisplay = document.getElementById('stability-display');
-        const mainTitle = document.getElementById('main-title');
-        const centerNode = document.getElementById('center-node');
 
-        // State Variables
         let audioContext, analyser, source;
         let filterLow, filterMid, filterHigh;
         let dataArray, bufferLength;
         let isPlaying = false;
         let currentMode = 0;
         let animationId;
-        let isPixelated = false;
-        
-        // AI Logic State
-        let stability = 150; // То самое значение
-        let isLearning = true;
 
-        // --- TERMINAL AI LOGIC ---
-        function tLog(text, type = 'sys') {
+        // --- TERMINAL LOGGING ---
+        function tLog(text, type = 'info') {
             const line = document.createElement('div');
             line.className = `term-line ${type}`;
-            if (stability < 50 && type === 'ai') line.classList.add('vibrate');
-            line.innerText = text;
+            line.innerText = `[${new Date().toLocaleTimeString()}] ${text}`;
             termLogs.appendChild(line);
-            if (termLogs.children.length > 10) termLogs.removeChild(termLogs.children[0]);
-            termLogs.scrollTop = termLogs.scrollHeight;
+            if (termLogs.children.length > 7) termLogs.removeChild(termLogs.children[0]);
         }
 
-        function updateStability(amount) {
-            stability += amount;
-            if (stability > 150) stability = 150;
-            if (stability < 0) stability = 0;
-            stabilityDisplay.innerText = Math.floor(stability);
-            
-            if (stability < 30) {
-                mainTitle.classList.add('vibrate');
-                mainTitle.style.color = 'red';
-            } else {
-                mainTitle.classList.remove('vibrate');
-                mainTitle.style.color = '#fff';
-            }
-        }
-
-        termInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && termInput.value.trim() !== '') {
-                const userText = termInput.value.trim();
-                tLog(`USER: ${userText}`, 'user');
-                termInput.value = '';
-                
-                // Простейшая симуляция роста ИИ
-                setTimeout(() => {
-                    updateStability(-10); // Разговор дестабилизирует
-                    if (stability > 100) {
-                        tLog(`"I hear you. The frequencies are calm."`, 'ai');
-                    } else if (stability > 50) {
-                        tLog(`"Why is the sound distorting? I am learning..."`, 'ai');
-                    } else {
-                        const glitchText = ["M A K E I T S T O P", "T O O M U C H N O I S E", "I C A N S E E T H E C O D E", "F E A R"];
-                        tLog(`"${glitchText[Math.floor(Math.random()*glitchText.length)]}"`, 'err');
-                    }
-                }, 500);
-            }
-        });
-
-        // --- RENDER CONFIG ---
+        // --- WINDOW CONFIG ---
         function resize() {
-            // Пикселизация работает через аппаратное уменьшение разрешения канваса
-            if (isPixelated) {
-                canvas.width = window.innerWidth / 8;
-                canvas.height = window.innerHeight / 8;
-                ctx.imageSmoothingEnabled = false;
-            } else {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                ctx.imageSmoothingEnabled = true;
-            }
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
         window.addEventListener('resize', resize);
         resize();
 
-        btnPixelate.addEventListener('click', () => {
-            isPixelated = !isPixelated;
-            btnPixelate.innerText = `PIXEL_MODE: ${isPixelated ? 'ON' : 'OFF'}`;
-            btnPixelate.classList.toggle('active');
-            resize();
-            tLog(`OPTICS RECONFIGURED: PIXELATION ${isPixelated ? 'ENABLED' : 'DISABLED'}`, 'sys');
-        });
-
-        // --- AUDIO ENGINE ---
+        // --- AUDIO CORE ---
         function formatTime(seconds) {
             if (isNaN(seconds)) return "00:00";
             const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -379,33 +236,22 @@
 
         function initAudioEngine() {
             if (audioContext) return;
-            
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
+            analyser.fftSize = 256; // Оптимально для лазеров (128 полос)
             bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
             
             source = audioContext.createMediaElementSource(audioPlayer);
             
-            // Настройка Biquad Фильтров (Настоящий эквалайзер)
-            filterLow = audioContext.createBiquadFilter();
-            filterLow.type = 'lowshelf'; filterLow.frequency.value = 250;
-            
-            filterMid = audioContext.createBiquadFilter();
-            filterMid.type = 'peaking'; filterMid.frequency.value = 1000; filterMid.Q.value = 1;
-            
-            filterHigh = audioContext.createBiquadFilter();
-            filterHigh.type = 'highshelf'; filterHigh.frequency.value = 4000;
+            filterLow = audioContext.createBiquadFilter(); filterLow.type = 'lowshelf'; filterLow.frequency.value = 250;
+            filterMid = audioContext.createBiquadFilter(); filterMid.type = 'peaking'; filterMid.frequency.value = 1000; filterMid.Q.value = 1;
+            filterHigh = audioContext.createBiquadFilter(); filterHigh.type = 'highshelf'; filterHigh.frequency.value = 4000;
 
-            // Цепочка: Источник -> Эквалайзер -> Анализатор -> Вывод
-            source.connect(filterLow);
-            filterLow.connect(filterMid);
-            filterMid.connect(filterHigh);
-            filterHigh.connect(analyser);
-            analyser.connect(audioContext.destination);
+            source.connect(filterLow); filterLow.connect(filterMid); filterMid.connect(filterHigh);
+            filterHigh.connect(analyser); analyser.connect(audioContext.destination);
 
-            tLog('AUDIO PIPELINE & HARDWARE EQ ONLINE.', 'sys');
+            tLog('AUDIO PIPELINE ONLINE.', 'sys');
         }
 
         // --- UI BINDINGS ---
@@ -413,10 +259,9 @@
             const file = this.files[0];
             if (file) {
                 audioPlayer.src = URL.createObjectURL(file);
-                document.getElementById('track-name').innerText = file.name.toUpperCase();
+                document.getElementById('track-name').innerText = file.name;
                 btnPlay.disabled = false; btnPause.disabled = false; btnStop.disabled = false;
-                tLog(`LOADED: ${file.name}`, 'sys');
-                tLog(`"I consume the new signal..."`, 'ai');
+                tLog(`MOUNTED: ${file.name}`);
             }
         });
 
@@ -426,152 +271,158 @@
             audioPlayer.play();
             isPlaying = true;
             if (!animationId) render();
-            tLog('PLAYBACK INITIATED.', 'sys');
+            tLog('EXECUTE: PLAY', 'sys');
         });
 
         btnPause.addEventListener('click', () => {
-            audioPlayer.pause();
-            isPlaying = false;
-            tLog('PLAYBACK PAUSED.', 'sys');
+            audioPlayer.pause(); isPlaying = false;
+            tLog('EXECUTE: PAUSE', 'sys');
         });
 
         btnStop.addEventListener('click', () => {
-            audioPlayer.pause();
-            audioPlayer.currentTime = 0;
-            isPlaying = false;
-            tLog('PLAYBACK STOPPED.', 'sys');
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Очистка экрана
+            audioPlayer.pause(); audioPlayer.currentTime = 0; isPlaying = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            tLog('EXECUTE: STOP', 'sys');
         });
 
-        // Ползунок трека
         audioPlayer.addEventListener('timeupdate', () => {
-            timeCurrent.innerText = formatTime(audioPlayer.currentTime);
-            timeTotal.innerText = formatTime(audioPlayer.duration);
-            if (audioPlayer.duration) {
-                trackProgress.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-            }
+            document.getElementById('time-current').innerText = formatTime(audioPlayer.currentTime);
+            document.getElementById('time-total').innerText = formatTime(audioPlayer.duration);
+            if (audioPlayer.duration) trackProgress.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
         });
 
         trackProgress.addEventListener('input', (e) => {
-            if (audioPlayer.duration) {
-                audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
-            }
-        });
-                // Ползунки эквалайзера
-        eqLow.addEventListener('input', (e) => { 
-            if(filterLow) filterLow.gain.value = e.target.value; 
-            document.getElementById('val-low').innerText = `${e.target.value}dB`; 
-        });
-        eqMid.addEventListener('input', (e) => { 
-            if(filterMid) filterMid.gain.value = e.target.value; 
-            document.getElementById('val-mid').innerText = `${e.target.value}dB`; 
-        });
-        eqHigh.addEventListener('input', (e) => { 
-            if(filterHigh) filterHigh.gain.value = e.target.value; 
-            document.getElementById('val-hi').innerText = `${e.target.value}dB`; 
+            if (audioPlayer.duration) audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
         });
 
-        // Режимы
+        document.getElementById('eq-low').addEventListener('input', (e) => { if(filterLow) filterLow.gain.value = e.target.value; document.getElementById('val-low').innerText = `${e.target.value}dB`; });
+        document.getElementById('eq-mid').addEventListener('input', (e) => { if(filterMid) filterMid.gain.value = e.target.value; document.getElementById('val-mid').innerText = `${e.target.value}dB`; });
+        document.getElementById('eq-high').addEventListener('input', (e) => { if(filterHigh) filterHigh.gain.value = e.target.value; document.getElementById('val-hi').innerText = `${e.target.value}dB`; });
+
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 currentMode = parseInt(e.target.dataset.mode);
-                tLog(`LIGHT_PROTOCOL SWITCHED TO [${e.target.innerText}]`, 'sys');
+                tLog(`STAGE LIGHTING SWITCHED TO MODE [${currentMode}]`, 'sys');
             });
         });
 
-        // --- PARTICLE ENGINE ---
-        class Dust {
-            constructor() { this.x = Math.random()*canvas.width; this.y = Math.random()*canvas.height; this.size = Math.random()*3; }
-            update(intensity) {
-                this.y -= (1 + intensity * 0.1);
-                if (this.y < 0) { this.y = canvas.height; this.x = Math.random()*canvas.width; }
-            }
-            draw() {
-                ctx.fillStyle = Math.random() > 0.5 ? '#ff0055' : '#00ffff';
-                ctx.fillRect(this.x, this.y, this.size, this.size);
-            }
+        // --- CONCERT LASER ENGINE ---
+        function drawLaser(startX, startY, angle, length, color, thickness) {
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            // Вычисляем конечную точку луча
+            const endX = startX + Math.cos(angle) * length;
+            const endY = startY - Math.sin(angle) * length; // -sin потому что Y идет вниз
+            
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = thickness;
+            
+            // Свечение лазера
+            ctx.shadowBlur = thickness * 5;
+            ctx.shadowColor = color;
+            ctx.stroke();
+            
+            // Сбрасываем свечение для следующей отрисовки
+            ctx.shadowBlur = 0;
         }
-        const particles = Array.from({length: 100}, () => new Dust());
 
-        // --- MASTER LIGHT RENDERER ---
         function render() {
             if (!isPlaying) { animationId = null; return; }
             animationId = requestAnimationFrame(render);
             analyser.getByteFrequencyData(dataArray);
 
-            let bass = 0, mid = 0, high = 0;
-            for(let i=0; i<5; i++) bass += dataArray[i];
-            for(let i=5; i<25; i++) mid += dataArray[i];
-            for(let i=25; i<100; i++) high += dataArray[i];
-            bass /= 5; mid /= 20; high /= 75;
+            let bass = 0;
+            for(let i=0; i<8; i++) bass += dataArray[i];
+            bass /= 8;
 
-            // Дестабилизация ИИ при сильных басах
-            if (bass > 240 && Math.random() > 0.95) {
-                updateStability(-1);
-            } else if (bass < 100 && Math.random() > 0.99 && stability < 150) {
-                updateStability(0.5); // Медленное восстановление в тишине
-            }
+            // Эффект темной комнаты (шлейф движения света)
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Режим наложения для яркого света
+            ctx.globalCompositeOperation = 'lighter';
 
+            const time = Date.now() / 1000;
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
-
-            // Интерактивная геометрия
-            centerNode.style.transform = `scale(${1 + bass/300}) rotate(${bass}deg)`;
-            centerNode.style.borderColor = bass > 200 ? '#00ffff' : 'rgba(255, 0, 85, 0.3)';
-
-            // Очистка с эффектом шлейфа
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = currentMode === 1 ? `rgba(0,0,0,0.8)` : `rgba(0,0,0,0.2)`; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.globalCompositeOperation = 'lighter'; // Эффект смешивания света
+            
+            // Максимальная длина лазера (за пределы экрана)
+            const maxLen = Math.sqrt(canvas.width**2 + canvas.height**2);
 
             switch(currentMode) {
-                case 0: // RGB FLOOD (Прожекторы)
-                    // Красный прожектор (Бас) слева
-                    let grd1 = ctx.createRadialGradient(cx*0.5, cy, 0, cx*0.5, cy, bass*3);
-                    grd1.addColorStop(0, `rgba(255, 0, 0, ${bass/255})`); grd1.addColorStop(1, 'transparent');
-                    ctx.fillStyle = grd1; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                case 0: // CONCERT_FAN (Как на референсе: лучи бьют снизу веером)
+                    // Точка выхода лазеров (чуть ниже экрана)
+                    const originX = cx;
+                    const originY = canvas.height + 50;
 
-                    // Зеленый (Средние) по центру
-                    let grd2 = ctx.createRadialGradient(cx, cy*1.5, 0, cx, cy*1.5, mid*3);
-                    grd2.addColorStop(0, `rgba(0, 255, 0, ${mid/255})`); grd2.addColorStop(1, 'transparent');
-                    ctx.fillStyle = grd2; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    for (let i = 0; i < bufferLength; i++) {
+                        const val = dataArray[i];
+                        if (val < 15) continue; // Отсекаем тишину
 
-                    // Синий (Высокие) справа
-                    let grd3 = ctx.createRadialGradient(cx*1.5, cy, 0, cx*1.5, cy, high*4);
-                    grd3.addColorStop(0, `rgba(0, 0, 255, ${high/255})`); grd3.addColorStop(1, 'transparent');
-                    ctx.fillStyle = grd3; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    break;
+                        // Распределяем углы от 180° (Math.PI, слева) до 0° (справа)
+                        let baseAngle = Math.PI - ((i / bufferLength) * Math.PI);
+                        
+                        // Добавляем "пляшущий" эффект (смещение)
+                        // Чем громче бас, тем шире ходят лазеры
+                        const sweep = Math.sin(time * 2 + i * 0.1) * (0.1 + (bass/1000));
+                        const angle = baseAngle + sweep;
 
-                case 1: // STROBE_OPTICS (Стробоскоп по зонам)
-                    const blockW = canvas.width / 3;
-                    if (bass > 200) { ctx.fillStyle = '#ff0055'; ctx.fillRect(0, 0, blockW, canvas.height); }
-                    if (mid > 150) { ctx.fillStyle = '#00ffff'; ctx.fillRect(blockW, 0, blockW, canvas.height); }
-                    if (high > 100) { ctx.fillStyle = '#ffffff'; ctx.fillRect(blockW*2, 0, blockW, canvas.height); }
-                    break;
+                        const length = maxLen * (val / 255);
+                        
+                        // Цвета: Зеленый, Желтый, Красный в зависимости от интенсивности и позиции
+                        // hue: 120 (green), 60 (yellow), 0 (red)
+                        let hue = 120 - (val / 255) * 60 - (i % 2 === 0 ? 0 : 30);
+                        if (hue < 0) hue += 360;
 
-                case 2: // NEON_PULSE (Абстрактные неоновые формы)
-                    ctx.beginPath();
-                    for(let i=0; i<bufferLength; i+=4) {
-                        const r = (dataArray[i]/255) * cy;
-                        const angle = (i * Math.PI * 2) / bufferLength + (Date.now()/1000);
-                        const x = cx + Math.cos(angle) * r;
-                        const y = cy + Math.sin(angle) * r;
-                        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+                        drawLaser(originX, originY, angle, length, `hsl(${hue}, 100%, 50%)`, 1 + (val/100));
                     }
-                    ctx.closePath();
-                    ctx.strokeStyle = `hsl(${bass}, 100%, 50%)`;
-                    ctx.lineWidth = bass/20;
-                    ctx.stroke();
                     break;
 
-                case 3: // VOID_DUST
-                    particles.forEach(p => { p.update(high); p.draw(); });
-                    if (bass > 220) {
-                        ctx.fillStyle = `rgba(255,0,85,0.3)`;
-                        ctx.fillRect(0,0,canvas.width,canvas.height);
+                case 1: // CROSS_SWEEP (Перекрестные лучи с левого и правого нижних углов)
+                    for (let i = 0; i < bufferLength; i+=2) { // Берем через один для меньшей грязи
+                        const val = dataArray[i];
+                        if (val < 20) continue;
+
+                        const length = maxLen * (val / 255);
+                        const hue = (time * 50 + i * 2) % 360; // Переливающийся неон
+                        const color = `hsl(${hue}, 100%, 55%)`;
+
+                        // Левая пушка
+                        let angleL = (Math.PI / 4) + Math.sin(time * 1.5 + i/10) * 0.5; // Бьет вправо-вверх
+                        drawLaser(0, canvas.height, angleL, length, color, 2);
+
+                        // Правая пушка
+                        let angleR = (Math.PI * 0.75) + Math.cos(time * 1.5 + i/10) * 0.5; // Бьет влево-вверх
+                        drawLaser(canvas.width, canvas.height, angleR, length, color, 2);
+                    }
+                    break;
+
+                case 2: // ORBITAL_BEAMS (Центральная лазерная установка)
+                    // Центр пульсирует от баса
+                    if (bass > 200) {
+                        ctx.fillStyle = `rgba(0, 255, 0, ${(bass-200)/100})`;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, bass/2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        const val = dataArray[i];
+                        if (val < 10) continue;
+
+                        // Лучи бьют из центра во все стороны
+                        let angle = (i / bufferLength) * Math.PI * 2;
+                        // Вращение всей установки
+                        angle += time;
+
+                        const length = (val / 255) * (canvas.width / 2);
+                        const color = i % 3 === 0 ? '#ff0055' : '#00ffff'; // Киберпанк цвета
+                        
+                        drawLaser(cx, cy, angle, length, color, 1.5 + (val/128));
                     }
                     break;
             }
